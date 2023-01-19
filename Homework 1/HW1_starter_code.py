@@ -16,7 +16,8 @@ def read_data(filename: str) -> pd.DataFrame:
     ########################
     ## Your Solution Here ##
     ########################
-    pass
+    data_frame = pd.read_csv(filename)
+    return data_frame
 
 
 # Return the shape of the data
@@ -28,7 +29,7 @@ def get_df_shape(filename: str) -> Tuple[int, int]:
     ########################
     ## Your Solution Here ##
     ########################
-    pass
+    return df.shape
 
 
 # Extract features "Lag1", "Lag2", and label "Direction"
