@@ -25,7 +25,7 @@ def read_data(filename: str) -> pd.DataFrame:
 # Question 8 sub 2
 
 
-def get_df_shape(filename: str) -> Tuple[int, int]:
+def get_df_shape(df: pd.DataFrame) -> Tuple[int, int]:
     ########################
     ## Your Solution Here ##
     ########################
@@ -41,8 +41,13 @@ def extract_features_label(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
     ########################
     ## Your Solution Here ##
     ########################
-    pass
+    lag1_lag2 = df.loc[:,['Lag1','Lag2']]
+   
+    return (lag1_lag2, df["Direction"])
+    
 
+print(read_data("Smarket.txt"))
+extract_features_label(read_data("Smarket.txt"))
 
 # Split the data into a train/test split
 
@@ -98,16 +103,16 @@ def knn_evaluate_with_neighbours(
     pass
 
 
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
+# if __name__ == "__main__":
+#     import matplotlib.pyplot as plt
 
-    df = read_data("/home/sumedhpendurkar/ML421/Assignment 1/Smarket 2.csv")
-    # assert on df
-    shape = get_df_shape(df)
-    # assert on shape
-    features, label = extract_features_label(df)
-    x_train, y_train, x_test, y_test = data_split(features, label, 0.33)
-    print(knn_test_score(1, x_train, y_train, x_test, y_test))
-    acc = knn_evaluate_with_neighbours(1, 10, x_train, y_train, x_test, y_test)
-    plt.plot(range(1, 11), acc)
-    plt.show()
+#     df = read_data("/home/sumedhpendurkar/ML421/Assignment 1/Smarket 2.csv")
+#     # assert on df
+#     shape = get_df_shape(df)
+#     # assert on shape
+#     features, label = extract_features_label(df)
+#     x_train, y_train, x_test, y_test = data_split(features, label, 0.33)
+#     print(knn_test_score(1, x_train, y_train, x_test, y_test))
+#     acc = knn_evaluate_with_neighbours(1, 10, x_train, y_train, x_test, y_test)
+#     plt.plot(range(1, 11), acc)
+#     plt.show()
