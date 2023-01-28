@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
 from typing import Tuple, List
 
 # Return the dataframe given the filename
@@ -46,8 +47,7 @@ def extract_features_label(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
     return (lag1_lag2, df["Direction"])
     
 
-print(read_data("Smarket.txt"))
-extract_features_label(read_data("Smarket.txt"))
+
 
 # Split the data into a train/test split
 
@@ -60,8 +60,17 @@ def data_split(
     ########################
     ## Your Solution Here ##
     ########################
-    pass
+    X_train, X_test, y_train, y_test = train_test_split(features, label, test_size=test_size)
+    return X_train, y_train, X_test, y_test
 
+# df = read_data("Smarket.txt")
+# # assert on df
+# shape = get_df_shape(df)
+# # assert on shape
+# features, label = extract_features_label(df)
+# x_train, y_train, x_test, y_test = data_split(features, label, 0.33)
+# print("train split")
+# print(x_train, "\n \n" , y_train, "\n \n \n \n" , x_test, "\n \n", y_test)
 
 # Write a function that returns score on test set with KNNs
 # (use KNeighborsClassifier class)
@@ -79,7 +88,10 @@ def knn_test_score(
     ########################
     ## Your Solution Here ##
     ########################
-    pass
+    knn = KNeighborsClassifier(n_neighbors= n_neighbors)
+    knn.fit(x_train, y_train)
+    y_prediction = knn.predict(x_test)
+    return accuracy_score(y_test, y_prediction)
 
 
 # Apply k-NN to a list of data
@@ -100,19 +112,25 @@ def knn_evaluate_with_neighbours(
     ########################
     ## Your Solution Here ##
     ########################
-    pass
+    accuracy_list = []
+    for neighbor in range(n_neighbors_min, n_neighbors_max+1):
+        knn = KNeighborsClassifier(n_neighbors= neighbor)
+        knn.fit(x_train, y_train)
+        y_prediction = knn.predict(x_test)
+        accuracy_list.append( accuracy_score(y_test, y_prediction))
+    return accuracy_list
 
 
-# if __name__ == "__main__":
-#     import matplotlib.pyplot as plt
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
 
-#     df = read_data("/home/sumedhpendurkar/ML421/Assignment 1/Smarket 2.csv")
-#     # assert on df
-#     shape = get_df_shape(df)
-#     # assert on shape
-#     features, label = extract_features_label(df)
-#     x_train, y_train, x_test, y_test = data_split(features, label, 0.33)
-#     print(knn_test_score(1, x_train, y_train, x_test, y_test))
-#     acc = knn_evaluate_with_neighbours(1, 10, x_train, y_train, x_test, y_test)
-#     plt.plot(range(1, 11), acc)
-#     plt.show()
+    df = read_data("/home/sumedhpendurkar/ML421/Assignment 1/Smarket 2.csv")
+    # assert on df
+    shape = get_df_shape(df)
+    # assert on shape
+    features, label = extract_features_label(df)
+    x_train, y_train, x_test, y_test = data_split(features, label, 0.33)
+    print(knn_test_score(1, x_train, y_train, x_test, y_test))
+    acc = knn_evaluate_with_neighbours(1, 10, x_train, y_train, x_test, y_test)
+    plt.plot(range(1, 11), acc)
+    plt.show()
