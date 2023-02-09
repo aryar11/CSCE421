@@ -1,6 +1,6 @@
 ################
 ################
-## Q1
+# Q1
 ################
 ################
 
@@ -25,10 +25,12 @@ def read_data(filename: str) -> pd.DataFrame:
     '''
         read data and return dataframe
     '''
+
     ########################
     ## Your Solution Here ##
     ########################
-    pass
+    df = pd.read_csv(filename)
+    return df
 
 
 # Prepare your input data and labels
@@ -37,53 +39,52 @@ def prepare_data(df_train: pd.DataFrame, df_test: pd.DataFrame) -> tuple:
         Separate input data and labels, remove NaN values. Execute this for both dataframes.
         return tuple of numpy arrays(train_data, train_label, test_data, test_label).
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+
+    df_train2 = df_train.dropna()  # remove nan values
+    df_test2 = df_test.dropna()
+    return df_train2["x"], df_train2["y"], df_test2["x"], df_test2["y"]
+
 
 # Implement LinearRegression class
-class LinearRegression_Local:   
-    def __init__(self, learning_rate=0.00001, iterations=30):        
+class LinearRegression_Local:
+    def __init__(self, learning_rate=0.00001, iterations=30):
         self.learning_rate = learning_rate
-        self.iterations    = iterations
+        self.iterations = iterations
+        self.weights = None
 
-    # Function for model training         
     def fit(self, X, Y):
-        # weight initialization
-        ### YOUR CODE HERE
-
-        ### YOUR CODE HERE   
-        
         # data
-        ### YOUR CODE HERE
-        ### YOUR CODE HERE   
-        
-        # gradient descent learning                  
-        ### YOUR CODE HERE
-        ### YOUR CODE HERE  
+        n = X.shape[0]
+        X = np.c_[np.ones(n), X]
+        self.weights = np.zeros(X.shape[1])
+        # gradient descent learning
+        for i in range(self.iterations):
+            y_pred = X.dot(self.weights)
+            error = Y - y_pred
+            gradient = -2/n * X.T.dot(error)
+            self.weights = self.weights - self.learning_rate * gradient
 
-    # Helper function to update weights in gradient descent      
-    def update_weights(self):
-        # predict on data and calculate gradients 
-        ### YOUR CODE HERE
-        ### YOUR CODE HERE  
-    
-        # update weights
-        ### YOUR CODE HERE
-        ### YOUR CODE HERE  
-
-    # Hypothetical function  h( x )       
     def predict(self, X):
-        ### YOUR CODE HERE
-        ### YOUR CODE HERE  
+        n = X.shape[0]
+        X = np.c_[np.ones(n), X]
+        y_pred = X.dot(self.weights)
+        return y_pred
 
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    #def update_weights(self):  ####Dont need this#####
+        # predict on data and calculate gradients
+        # YOUR CODE HERE
+        # YOUR CODE HERE
+
+        # update weights
+        # YOUR CODE HERE
+        # YOUR CODE HERE
+
+        # Hypothetical function  h( x )
+
 
 # Build your model
+
+
 def build_model(train_X: np.array, train_y: np.array):
     '''
         Instantiate an object of LinearRegression class, train the model object
@@ -95,6 +96,8 @@ def build_model(train_X: np.array, train_y: np.array):
     pass
 
 # Make predictions with test set
+
+
 def pred_func(model, X_test):
     '''
         return numpy array comprising of prediction on test set using the model
@@ -105,6 +108,8 @@ def pred_func(model, X_test):
     pass
 
 # Calculate and print the mean square error of your prediction
+
+
 def MSE(y_test, pred):
     '''
         return the mean square error corresponding to your prediction
@@ -116,11 +121,13 @@ def MSE(y_test, pred):
 
 ################
 ################
-## Q2
+# Q2
 ################
 ################
 
 # Download and read the data.
+
+
 def read_training_data(filename: str) -> tuple:
     '''
         read train data into a dataframe df1, store the top 10 entries of the dataframe in df2
@@ -132,6 +139,8 @@ def read_training_data(filename: str) -> tuple:
     pass
 
 # Prepare your input data and labels
+
+
 def data_clean(df_train: pd.DataFrame) -> tuple:
     '''
         check for any missing values in the data and store the missing values in series s, drop the entries corresponding 
@@ -141,6 +150,7 @@ def data_clean(df_train: pd.DataFrame) -> tuple:
     ## Your Solution Here ##
     ########################
     pass
+
 
 def feature_extract(df_train: pd.DataFrame) -> tuple:
     '''
@@ -153,6 +163,7 @@ def feature_extract(df_train: pd.DataFrame) -> tuple:
     ########################
     pass
 
+
 def data_preprocess(feature: pd.DataFrame) -> pd.DataFrame:
     '''
         Separate numerical columns from nonnumerical columns. (In pandas, check out .select dtypes(exclude = ['int64', 'float64']) and .select dtypes(
@@ -164,6 +175,7 @@ def data_preprocess(feature: pd.DataFrame) -> pd.DataFrame:
     ########################
     pass
 
+
 def label_transform(labels: pd.Series) -> pd.Series:
     '''
         Transform the labels into numerical format and return the labels
@@ -171,14 +183,16 @@ def label_transform(labels: pd.Series) -> pd.Series:
     ########################
     ## Your Solution Here ##
     ########################
-    pass    
+    pass
 
 ################
 ################
-## Q3
+# Q3
 ################
-################ 
-def data_split(features: pd.DataFrame, label:pd.Series, random_state  = 42) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+################
+
+
+def data_split(features: pd.DataFrame, label: pd.Series, random_state=42) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     '''
         Split 80% of data as a training set and the remaining 20% of the data as testing set using the given random state
         return training and testing sets in the following order: X_train, X_test, y_train, y_test
@@ -186,9 +200,10 @@ def data_split(features: pd.DataFrame, label:pd.Series, random_state  = 42) -> T
     ########################
     ## Your Solution Here ##
     ########################
-    pass   
+    pass
 
-def train_linear_regression( x_train: np.ndarray, y_train:np.ndarray):
+
+def train_linear_regression(x_train: np.ndarray, y_train: np.ndarray):
     '''
         Instantiate an object of LinearRegression class, train the model object
         using training data and return the model object
@@ -197,7 +212,9 @@ def train_linear_regression( x_train: np.ndarray, y_train:np.ndarray):
     ## Your Solution Here ##
     ########################
     pass
-def train_logistic_regression( x_train: np.ndarray, y_train:np.ndarray, max_iter=1000000):
+
+
+def train_logistic_regression(x_train: np.ndarray, y_train: np.ndarray, max_iter=1000000):
     '''
         Instantiate an object of LogisticRegression class, train the model object
         use provided max_iterations for training logistic model
@@ -206,7 +223,8 @@ def train_logistic_regression( x_train: np.ndarray, y_train:np.ndarray, max_iter
     ########################
     ## Your Solution Here ##
     ########################
-    pass 
+    pass
+
 
 def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.ndarray]:
     '''
@@ -217,6 +235,7 @@ def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.nd
     ## Your Solution Here ##
     ########################
     pass
+
 
 def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.array, np.array, np.array, np.array, float]:
     '''
@@ -229,6 +248,7 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
     ## Your Solution Here ##
     ########################
     pass
+
 
 def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.array, np.array, np.array, np.array, float]:
     '''
@@ -243,7 +263,6 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
     pass
 
 
-
 def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray, linear_reg_tpr: np.ndarray, log_threshold: np.ndarray, log_reg_fpr: np.ndarray, log_reg_tpr: np.ndarray) -> Tuple[float, float]:
     '''
         return the tuple consisting the thresholds of Linear Regression and Logistic Regression Models respectively
@@ -252,6 +271,7 @@ def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray,
     ## Your Solution Here ##
     ########################
     pass
+
 
 def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, features: pd.DataFrame, label: pd.Series):
     '''
@@ -262,6 +282,7 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
     ## Your Solution Here ##
     ########################
     pass
+
 
 def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.Series) -> Tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
     '''
@@ -277,6 +298,7 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
     ########################
     pass
 
+
 def is_features_count_changed(features_count: np.array) -> bool:
     '''
         compare number of features in each fold (features_count array's each element)
@@ -286,6 +308,7 @@ def is_features_count_changed(features_count: np.array) -> bool:
     ## Your Solution Here ##
     ########################
     pass
+
 
 def mean_confidence_interval(data: np.array, confidence=0.95) -> Tuple[float, float, float]:
     '''
@@ -297,17 +320,18 @@ def mean_confidence_interval(data: np.array, confidence=0.95) -> Tuple[float, fl
     ########################
     ## Your Solution Here ##
     ########################
-    pass 
+    pass
+
 
 if __name__ == "__main__":
 
     ################
     ################
-    ## Q1
+    # Q1
     ################
     ################
-    data_path_train   = "/path/train.csv"
-    data_path_test    = "/path/test.csv"
+    data_path_train = "/path/train.csv"
+    data_path_test = "/path/test.csv"
     df_train, df_test = read_data(data_path_train), read_data(data_path_test)
 
     train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
@@ -326,25 +350,23 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
 
+    ################
+    ################
+    # Q2
+    ################
+    ################
 
-    ################
-    ################
-    ## Q2
-    ################
-    ################
-
-    data_path_training   = "/path/Hitters.csv"
-
+    data_path_training = "/path/Hitters.csv"
 
     train_df, df2, df_train_shape = read_training_data(data_path_training)
     s, df_train_mod = data_clean(train_df)
     features, label = feature_extract(df_train_mod)
-    final_features  = data_preprocess(features)
-    final_label     = label_transform(label)
+    final_features = data_preprocess(features)
+    final_label = label_transform(label)
 
     ################
     ################
-    ## Q3
+    # Q3
     ################
     ################
 
@@ -364,32 +386,38 @@ if __name__ == "__main__":
 
     logistic_model = train_logistic_regression(X_train, y_train)
 
-    linear_coef, logistic_coef = models_coefficients(linear_model, logistic_model)
+    linear_coef, logistic_coef = models_coefficients(
+        linear_model, logistic_model)
 
     print(linear_coef)
     print(logistic_coef)
 
-    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(linear_model, X_test, y_test)
+    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(
+        linear_model, X_test, y_test)
 
-    log_y_pred, log_reg_fpr, log_reg_tpr, log_reg_area_under_curve, log_threshold = logistic_pred_and_area_under_curve(logistic_model, X_test, y_test)
-
+    log_y_pred, log_reg_fpr, log_reg_tpr, log_reg_area_under_curve, log_threshold = logistic_pred_and_area_under_curve(
+        logistic_model, X_test, y_test)
 
     plt.plot(log_reg_fpr, log_reg_fpr, label='logistic')
     plt.plot(linear_reg_fpr, linear_reg_tpr, label='linear')
     plt.legend()
     plt.show()
-    
-    linear_threshod, linear_threshod = optimal_thresholds(y_test, linear_y_pred, log_y_pred, linear_threshold, log_threshold)
 
-    skf = stratified_k_fold_cross_validation(num_of_folds, final_features, final_label)
-    features_count, auc_log, auc_linear, f1_dict = train_test_folds(skf, num_of_folds)
+    linear_threshod, linear_threshod = optimal_thresholds(
+        y_test, linear_y_pred, log_y_pred, linear_threshold, log_threshold)
+
+    skf = stratified_k_fold_cross_validation(
+        num_of_folds, final_features, final_label)
+    features_count, auc_log, auc_linear, f1_dict = train_test_folds(
+        skf, num_of_folds)
 
     print("Does features change in each fold?")
 
     # call is_features_count_changed function and return true if features count changes in each fold. else return false
     is_features_count_changed = is_features_count_changed(features_count)
 
-    linear_threshold, log_threshold = optimal_thresholds(linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
+    linear_threshold, log_threshold = optimal_thresholds(
+        linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
     print(is_features_count_changed)
 
     auc_linear_mean, auc_linear_open_interval, auc_linear_close_interval = 0, 0, 0
@@ -398,23 +426,11 @@ if __name__ == "__main__":
     f1_linear_mean, f1_linear_open_interval, f1_linear_close_interval = 0, 0, 0
     f1_log_mean, f1_log_open_interval, f1_log_close_interval = 0, 0, 0
 
-
-    #Find mean and 95% confidence interval for the AUROCs for each model and populate the above variables accordingly
-    #Hint: use mean_confidence_interval function and pass roc_auc_scores of each fold for both models (ex: auc_log)
-    #Find mean and 95% confidence interval for the f1 score for each model.
+    # Find mean and 95% confidence interval for the AUROCs for each model and populate the above variables accordingly
+    # Hint: use mean_confidence_interval function and pass roc_auc_scores of each fold for both models (ex: auc_log)
+    # Find mean and 95% confidence interval for the f1 score for each model.
 
     mean_confidence_interval(auc_log)
     mean_confidence_interval(auc_linear)
     mean_confidence_interval(f1_dict['log_reg'])
     mean_confidence_interval(f1_dict['linear_reg'])
-
-
-
-
-
-
-
-
-
-
-
