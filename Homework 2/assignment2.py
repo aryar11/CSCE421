@@ -29,8 +29,7 @@ def read_data(filename: str) -> pd.DataFrame:
     ########################
     ## Your Solution Here ##
     ########################
-    df = pd.read_csv(filename)
-    return df
+    return pd.read_csv(filename)
 
 
 # Prepare your input data and labels
@@ -39,10 +38,22 @@ def prepare_data(df_train: pd.DataFrame, df_test: pd.DataFrame) -> tuple:
         Separate input data and labels, remove NaN values. Execute this for both dataframes.
         return tuple of numpy arrays(train_data, train_label, test_data, test_label).
     '''
-
+    #separate data
+ 
+    trainX = df_train["x"]
+    trainY = df_train["y"]
+    testX = df_test["x"]
+    testY = df_test["y"]
+    
     df_train2 = df_train.dropna()  # remove nan values
     df_test2 = df_test.dropna()
-    return df_train2["x"], df_train2["y"], df_test2["x"], df_test2["y"]
+    #remove NAN values and return
+    print(trainX.columns[0:].to_numpy())
+    return trainX.dropna().to_numpy(), trainY.dropna().to_numpy(), testX.dropna().to_numpy(), testY.dropna().to_numpy()
+
+
+#split_data = prepare_data(read_data("linear_regression_test.csv"),read_data("linear_regression_train.csv"))
+
 
 
 # Implement LinearRegression class
@@ -54,32 +65,29 @@ class LinearRegression_Local:
 
     def fit(self, X, Y):
         # data
-        n = X.shape[0]
-        X = np.c_[np.ones(n), X]
+        
         self.weights = np.zeros(X.shape[1])
         # gradient descent learning
         for i in range(self.iterations):
-            y_pred = X.dot(self.weights)
-            error = Y - y_pred
-            gradient = -2/n * X.T.dot(error)
-            self.weights = self.weights - self.learning_rate * gradient
-
+            self.update_weights(X, Y)
+    # Helper function to update weights in gradient descent
+    def update_weights(self, X, Y):
+        # predict on data and calculate gradients
+        y_pred = X.dot(self.weights)
+        error = y_pred - Y
+        gradient = X.T.dot(error) / X.shape[0]
+        
+        # update weights
+        self.weights -= self.learning_rate * gradient
     def predict(self, X):
         n = X.shape[0]
         X = np.c_[np.ones(n), X]
         y_pred = X.dot(self.weights)
         return y_pred
 
-    #def update_weights(self):  ####Dont need this#####
-        # predict on data and calculate gradients
-        # YOUR CODE HERE
-        # YOUR CODE HERE
-
-        # update weights
-        # YOUR CODE HERE
-        # YOUR CODE HERE
-
         # Hypothetical function  h( x )
+    def predict(self, X):
+        return X.dot(self.weights)
 
 
 # Build your model
@@ -90,10 +98,10 @@ def build_model(train_X: np.array, train_y: np.array):
         Instantiate an object of LinearRegression class, train the model object
         using training data and return the model object
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+
+    model = LinearRegression_Local()
+    model.fit(train_X, train_y)
+    return model
 
 # Make predictions with test set
 
@@ -102,10 +110,9 @@ def pred_func(model, X_test):
     '''
         return numpy array comprising of prediction on test set using the model
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+
+    return model.predict(X_test)
+    
 
 # Calculate and print the mean square error of your prediction
 
@@ -114,10 +121,7 @@ def MSE(y_test, pred):
     '''
         return the mean square error corresponding to your prediction
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    return np.mean((y_test - pred)**2)
 
 ################
 ################
@@ -330,8 +334,8 @@ if __name__ == "__main__":
     # Q1
     ################
     ################
-    data_path_train = "/path/train.csv"
-    data_path_test = "/path/test.csv"
+    data_path_train = "train.csv"
+    data_path_test = "test.csv"
     df_train, df_test = read_data(data_path_train), read_data(data_path_test)
 
     train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
