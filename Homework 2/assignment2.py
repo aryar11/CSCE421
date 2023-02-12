@@ -46,7 +46,7 @@ def prepare_data(df_train: pd.DataFrame, df_test: pd.DataFrame) -> tuple:
     testX = df_test["x"]
     testY = df_test["y"]
     
-    #reformat how numpy array looks so it looks nicer
+    #reformat how numpy array looks so it looks nicer when i print
     np.set_printoptions(formatter={'float_kind':'{:25f}'.format})   
 
     #cast to numpy and return 
@@ -81,11 +81,7 @@ class LinearRegression_Local:
         
         # update weights
         self.weights -= self.learning_rate * gradient
-    def predict(self, X):
-        n = X.shape[0]
-        X = np.c_[np.ones(n), X]
-        y_pred = X.dot(self.weights)
-        return y_pred
+
 
         # Hypothetical function  h( x )
     def predict(self, X):
