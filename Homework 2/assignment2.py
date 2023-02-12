@@ -38,18 +38,19 @@ def prepare_data(df_train: pd.DataFrame, df_test: pd.DataFrame) -> tuple:
         Separate input data and labels, remove NaN values. Execute this for both dataframes.
         return tuple of numpy arrays(train_data, train_label, test_data, test_label).
     '''
-    #separate data
- 
+    #separate data and drop NAN
+    df_train.dropna()
+    df_test.dropna()
     trainX = df_train["x"]
     trainY = df_train["y"]
     testX = df_test["x"]
     testY = df_test["y"]
     
-    df_train2 = df_train.dropna()  # remove nan values
-    df_test2 = df_test.dropna()
-    #remove NAN values and return
-    print(trainX.columns[0:].to_numpy())
-    return trainX.dropna().to_numpy(), trainY.dropna().to_numpy(), testX.dropna().to_numpy(), testY.dropna().to_numpy()
+    #reformat how numpy array looks so it looks nicer
+    np.set_printoptions(formatter={'float_kind':'{:25f}'.format})   
+
+    #cast to numpy and return 
+    return trainX.to_numpy(), trainY.to_numpy(), testX.to_numpy(), testY.to_numpy()
 
 
 #split_data = prepare_data(read_data("linear_regression_test.csv"),read_data("linear_regression_train.csv"))
@@ -66,7 +67,7 @@ class LinearRegression_Local:
     def fit(self, X, Y):
         # data
         
-        self.weights = np.zeros(X.shape[1])
+        self.weights = np.zeros(X.shape[0])
         # gradient descent learning
         for i in range(self.iterations):
             self.update_weights(X, Y)
@@ -75,6 +76,7 @@ class LinearRegression_Local:
         # predict on data and calculate gradients
         y_pred = X.dot(self.weights)
         error = y_pred - Y
+        # print("X shape  ", X.shape[0], "error shape   ",  error.shape ," y  shape  ", Y.shape, " y pred shape   ", y_pred.shape ,"\n\n")
         gradient = X.T.dot(error) / X.shape[0]
         
         # update weights
@@ -87,6 +89,7 @@ class LinearRegression_Local:
 
         # Hypothetical function  h( x )
     def predict(self, X):
+        print("X shape  ", X.shape, "weights shape   ",  self.weights.shape , "\n")
         return X.dot(self.weights)
 
 
