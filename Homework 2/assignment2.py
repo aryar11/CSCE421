@@ -82,6 +82,11 @@ class LinearRegression_Local:
         # update weights
         self.weights -= self.learning_rate * gradient
 
+    """def predict(self, X):
+        n = X.shape[0]
+        X = np.c_[np.ones(n), X]
+        y_pred = X.dot(self.weights)
+        return y_pred """
 
         # Hypothetical function  h( x )
     def predict(self, X):
