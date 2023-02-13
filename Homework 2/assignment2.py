@@ -191,20 +191,23 @@ def data_preprocess(feature: pd.DataFrame) -> pd.DataFrame:
         include = ['int64', 'float64']). Afterwards, use get dummies for transforming to categorical. Then concat both parts (pd.concat()).
         and return the concatenated dataframe.
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    # select numbers
+    print(feature)
+    numbers = feature.select_dtypes(include=['int64', 'float64'])
+    # select everything else
+    not_numbers = feature.select_dtypes(exclude=['int64', 'float64'])
+    # get_dummies, concact, and return
+    print(pd.concat([numbers, not_numbers]))
+    return pd.concat([pd.get_dummies(numbers), pd.get_dummies(not_numbers)])
 
 
 def label_transform(labels: pd.Series) -> pd.Series:
     '''
         Transform the labels into numerical format and return the labels
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    labels.replace('A', 0)
+    print(labels.replace('N', 1))
+    return labels.replace('N', 1)
 
 ################
 ################
@@ -218,9 +221,7 @@ def data_split(features: pd.DataFrame, label: pd.Series, random_state=42) -> Tup
         Split 80% of data as a training set and the remaining 20% of the data as testing set using the given random state
         return training and testing sets in the following order: X_train, X_test, y_train, y_test
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
+
     pass
 
 
@@ -382,7 +383,7 @@ if __name__ == "__main__":
     ################
     ################
 
-    data_path_training = "/path/Hitters.csv"
+    data_path_training = "Hitters.csv"
 
     train_df, df2, df_train_shape = read_training_data(data_path_training)
     s, df_train_mod = data_clean(train_df)
