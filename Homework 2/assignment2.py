@@ -61,59 +61,51 @@ class LinearRegression_Local:
     def __init__(self, learning_rate=0.00001, iterations=30):
         self.learning_rate = learning_rate
         self.iterations = iterations
-        self.weights = []
+        self.final_weight = None
+        self.final_bias = None
 
     def fit(self, X, Y):
         # data
         n = float(len(X))
-        current_w = 1
-        b = 0.01
-        costs = []
-        weights = []
+        w = 0
+        b = 0
         previous_cost = None
         # gradient descent learning
-        for i in range(self.iterations):
-            print("loop w:  ", current_w, "B;   ", b)
-            current_w, b = self.update_weights(X, Y, b, previous_cost,
-                                               costs, current_w, n)
-        self.final_weight = current_w
+        for i in range(len(X)):
+            #w, b = self.update_weights(X, Y, b, previous_cost, costs, w, n)
+            y_pred = X * w + b
+            #derivative of weight and bias
+            weight_d = (-2/n) * np.nansum(X * (Y-y_pred))
+            bias_d = (-2/n) * np.nansum(Y-y_pred)
+            #update weights
+            w = w - (self.learning_rate * weight_d)
+            b = b - (self.learning_rate * bias_d)
+        #set final m and b
+        self.final_weight = w
         self.final_bias = b
 
     # Helper function to update weights in gradient descent
 
-    def update_weights(self, X, Y, b, previous_cost, costs, current_w, n):
+    def update_weights(self, X, Y, b, previous_cost, costs, w, n):
         # predict on data and calculate gradients
 
-        y_pred = X * current_w + b
+        y_pred = X * w + b
         current_cost = MSE(Y, y_pred)
-
-        if previous_cost and abs(previous_cost-current_cost) <= 0.00001:
-            print("YOOOOOOOOOOOOOOOOOOOOO \n\n\n\n\n")
-            return
 
         previous_cost = current_cost
 
         costs.append(current_cost)
-        self.weights.append(current_w)
-        weight_d = -1*(2/n) * np.nansum(X * (Y-y_pred))
-        bias_d = -1*(2/n) * np.nansum(Y-y_pred)
+        self.weights.append(w)
+        weight_d = (-2/n) * np.nansum(X * (Y-y_pred))
+        bias_d = (-2/n) * np.nansum(Y-y_pred)
         # update weights
-
-        current_w = current_w - (self.learning_rate * weight_d)
+        w = w - (self.learning_rate * weight_d)
         b = b - (self.learning_rate * bias_d)
-        return current_w, b
-
-    """def predict(self, X):
-        n = X.shape[0]
-        X = np.c_[np.ones(n), X]
-        y_pred = X.dot(self.weights)
-        return y_pred """
+        return w, b
 
     # Hypothetical function  h( x )
     def predict(self, X):
-       # print("weight:   ", self.final_weight, " bias:  ", self.final_bias, "\n\n\n\n", X[0])
-
-        return X*self.final_weight + self.final_bias
+        return (X*self.final_weight) + self.final_bias
 
 
 # Build your model
@@ -136,7 +128,6 @@ def pred_func(model, X_test):
     '''
         return numpy array comprising of prediction on test set using the model
     '''
-
     return model.predict(X_test)
 
 
