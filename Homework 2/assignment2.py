@@ -53,7 +53,7 @@ def prepare_data(df_train: pd.DataFrame, df_test: pd.DataFrame) -> tuple:
     return trainX.to_numpy(), trainY.to_numpy(), testX.to_numpy(), testY.to_numpy()
 
 
-#split_data = prepare_data(read_data("linear_regression_test.csv"),read_data("linear_regression_train.csv"))
+# split_data = prepare_data(read_data("linear_regression_test.csv"),read_data("linear_regression_train.csv"))
 
 
 # Implement LinearRegression class
@@ -95,14 +95,12 @@ class LinearRegression_Local:
 
         costs.append(current_cost)
         self.weights.append(current_w)
-        print("y pred", y_pred[0])
-        weight_d = -(2/n) * sum(X * (Y-y_pred))
-        bias_d = -(2/n) * sum(Y-y_pred)
+        weight_d = -1*(2/n) * np.nansum(X * (Y-y_pred))
+        bias_d = -1*(2/n) * np.nansum(Y-y_pred)
         # update weights
-        print("before w:  ", current_w, "B;   ", b)
+
         current_w = current_w - (self.learning_rate * weight_d)
         b = b - (self.learning_rate * bias_d)
-        print("after w:  ", current_w, "B;   ", b, "\n\n\n")
         return current_w, b
 
     """def predict(self, X):
@@ -164,7 +162,7 @@ def MSE(y_test, pred):
 def read_training_data(filename: str) -> tuple:
     '''
         read train data into a dataframe df1, store the top 10 entries of the dataframe in df2
-        and return a tuple of the form (df1, df2, shape of df1)   
+        and return a tuple of the form (df1, df2, shape of df1)
     '''
     ########################
     ## Your Solution Here ##
@@ -176,7 +174,7 @@ def read_training_data(filename: str) -> tuple:
 
 def data_clean(df_train: pd.DataFrame) -> tuple:
     '''
-        check for any missing values in the data and store the missing values in series s, drop the entries corresponding 
+        check for any missing values in the data and store the missing values in series s, drop the entries corresponding
         to the missing values and store dataframe in df_train and return a tuple in the form: (s, df_train)
     '''
     ########################
@@ -261,7 +259,7 @@ def train_logistic_regression(x_train: np.ndarray, y_train: np.ndarray, max_iter
 
 def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.ndarray]:
     '''
-        return the tuple consisting the coefficients for each feature for Linear Regression 
+        return the tuple consisting the coefficients for each feature for Linear Regression
         and Logistic Regression Models respectively
     '''
     ########################
@@ -272,9 +270,10 @@ def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.nd
 
 def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.array, np.array, np.array, np.array, float]:
     '''
-        return the tuple consisting the predictions and area under the curve measurements of Linear Regression 
-        and Logistic Regression Models respectively in the following order 
-        [linear_reg_pred, linear_reg_fpr, linear_reg_tpr, linear_threshold, linear_reg_area_under_curve]
+        return the tuple consisting the predictions and area under the curve measurements of Linear Regression
+        and Logistic Regression Models respectively in the following order
+        [linear_reg_pred, linear_reg_fpr, linear_reg_tpr,
+            linear_threshold, linear_reg_area_under_curve]
         Finally plot the ROC Curve
     '''
     ########################
@@ -285,9 +284,10 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
 
 def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.array, np.array, np.array, np.array, float]:
     '''
-        return the tuple consisting the predictions and area under the curve measurements of Linear Regression 
-        and Logistic Regression Models respectively in the following order 
-        [log_reg_pred, log_reg_fpr, log_reg_tpr, log_threshold, log_reg_area_under_curve]
+        return the tuple consisting the predictions and area under the curve measurements of Linear Regression
+        and Logistic Regression Models respectively in the following order
+        [log_reg_pred, log_reg_fpr, log_reg_tpr,
+            log_threshold, log_reg_area_under_curve]
         Finally plot the ROC Curve
     '''
     ########################
@@ -319,7 +319,7 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
 
 def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.Series) -> Tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
     '''
-        train and test in for loop with different training and test sets obatined from skf. 
+        train and test in for loop with different training and test sets obatined from skf.
         use a PENALTY of 12 for logitic regression model for training
         find features in each fold and store them in features_count array.
         populate auc_log and auc_linear arrays with roc_auc_score of each set trained on logistic regression and linear regression models respectively.
@@ -345,8 +345,8 @@ def is_features_count_changed(features_count: np.array) -> bool:
 
 def mean_confidence_interval(data: np.array, confidence=0.95) -> Tuple[float, float, float]:
     '''
-        To calculate mean and confidence interval, in scipy checkout .sem to find standard error of the mean of given data (AUROCs/ f1 scores of each model, linear and logistic trained on all sets). 
-        Then compute Percent Point Function available in scipy and mutiply it with standard error calculated earlier to calculate h. 
+        To calculate mean and confidence interval, in scipy checkout .sem to find standard error of the mean of given data (AUROCs/ f1 scores of each model, linear and logistic trained on all sets).
+        Then compute Percent Point Function available in scipy and mutiply it with standard error calculated earlier to calculate h.
         The required interval is from mean-h to mean+h
         return the tuple consisting of mean, mean -h, mean+h
     '''
