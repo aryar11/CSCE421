@@ -38,23 +38,22 @@ def prepare_data(df_train: pd.DataFrame, df_test: pd.DataFrame) -> tuple:
         Separate input data and labels, remove NaN values. Execute this for both dataframes.
         return tuple of numpy arrays(train_data, train_label, test_data, test_label).
     '''
-    #separate data and drop NAN
+    # separate data and drop NAN
     df_train.dropna()
     df_test.dropna()
     trainX = df_train["x"]
     trainY = df_train["y"]
     testX = df_test["x"]
     testY = df_test["y"]
-    
-    #reformat how numpy array looks so it looks nicer when i print
-    np.set_printoptions(formatter={'float_kind':'{:25f}'.format})   
 
-    #cast to numpy and return 
+    # reformat how numpy array looks so it looks nicer when i print
+    np.set_printoptions(formatter={'float_kind': '{:25f}'.format})
+
+    # cast to numpy and return
     return trainX.to_numpy(), trainY.to_numpy(), testX.to_numpy(), testY.to_numpy()
 
 
 #split_data = prepare_data(read_data("linear_regression_test.csv"),read_data("linear_regression_train.csv"))
-
 
 
 # Implement LinearRegression class
@@ -62,25 +61,49 @@ class LinearRegression_Local:
     def __init__(self, learning_rate=0.00001, iterations=30):
         self.learning_rate = learning_rate
         self.iterations = iterations
-        self.weights = None
+        self.weights = []
 
     def fit(self, X, Y):
         # data
-        
-        self.weights = np.zeros(X.shape[0])
+        n = float(len(X))
+        current_w = 1
+        b = 0.01
+        costs = []
+        weights = []
+        previous_cost = None
         # gradient descent learning
         for i in range(self.iterations):
-            self.update_weights(X, Y)
+            print("loop w:  ", current_w, "B;   ", b)
+            current_w, b = self.update_weights(X, Y, b, previous_cost,
+                                               costs, current_w, n)
+        self.final_weight = current_w
+        self.final_bias = b
+
     # Helper function to update weights in gradient descent
-    def update_weights(self, X, Y):
+
+    def update_weights(self, X, Y, b, previous_cost, costs, current_w, n):
         # predict on data and calculate gradients
-        y_pred = X.dot(self.weights)
-        error = y_pred - Y
-        # print("X shape  ", X.shape[0], "error shape   ",  error.shape ," y  shape  ", Y.shape, " y pred shape   ", y_pred.shape ,"\n\n")
-        gradient = X.T.dot(error) / X.shape[0]
-        
+
+        y_pred = X * current_w + b
+        current_cost = MSE(Y, y_pred)
+
+        if previous_cost and abs(previous_cost-current_cost) <= 0.00001:
+            print("YOOOOOOOOOOOOOOOOOOOOO \n\n\n\n\n")
+            return
+
+        previous_cost = current_cost
+
+        costs.append(current_cost)
+        self.weights.append(current_w)
+        print("y pred", y_pred[0])
+        weight_d = -(2/n) * sum(X * (Y-y_pred))
+        bias_d = -(2/n) * sum(Y-y_pred)
         # update weights
-        self.weights -= self.learning_rate * gradient
+        print("before w:  ", current_w, "B;   ", b)
+        current_w = current_w - (self.learning_rate * weight_d)
+        b = b - (self.learning_rate * bias_d)
+        print("after w:  ", current_w, "B;   ", b, "\n\n\n")
+        return current_w, b
 
     """def predict(self, X):
         n = X.shape[0]
@@ -88,10 +111,11 @@ class LinearRegression_Local:
         y_pred = X.dot(self.weights)
         return y_pred """
 
-        # Hypothetical function  h( x )
+    # Hypothetical function  h( x )
     def predict(self, X):
-        print("X shape  ", X.shape, "weights shape   ",  self.weights.shape , "\n")
-        return X.dot(self.weights)
+       # print("weight:   ", self.final_weight, " bias:  ", self.final_bias, "\n\n\n\n", X[0])
+
+        return X*self.final_weight + self.final_bias
 
 
 # Build your model
@@ -116,7 +140,7 @@ def pred_func(model, X_test):
     '''
 
     return model.predict(X_test)
-    
+
 
 # Calculate and print the mean square error of your prediction
 
@@ -125,7 +149,8 @@ def MSE(y_test, pred):
     '''
         return the mean square error corresponding to your prediction
     '''
-    return np.mean((y_test - pred)**2)
+    # return np.mean((y_test - pred)**2)
+    return np.sum((y_test-pred)**2) / len(y_test)
 
 ################
 ################
