@@ -155,10 +155,8 @@ def read_training_data(filename: str) -> tuple:
         read train data into a dataframe df1, store the top 10 entries of the dataframe in df2
         and return a tuple of the form (df1, df2, shape of df1)
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    df1 = pd.read_csv(filename)
+    return df1, df1.head(10), df1.shape
 
 # Prepare your input data and labels
 
@@ -171,7 +169,8 @@ def data_clean(df_train: pd.DataFrame) -> tuple:
     ########################
     ## Your Solution Here ##
     ########################
-    pass
+    s = df_train.isnull().sum()
+    return (s, df_train.dropna())
 
 
 def feature_extract(df_train: pd.DataFrame) -> tuple:
@@ -180,10 +179,10 @@ def feature_extract(df_train: pd.DataFrame) -> tuple:
         Separate the data from labels.
         return a tuple of the form: (features(dtype: pandas.core.frame.DataFrame), label(dtype: pandas.core.series.Series))
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+
+    # saving the last column "newleague" since I'll be removing it in the return statement
+    label = df_train["NewLeague"]
+    return df_train.drop(df_train.columns[df_train.shape[1] - 1], axis=1), label
 
 
 def data_preprocess(feature: pd.DataFrame) -> pd.DataFrame:
