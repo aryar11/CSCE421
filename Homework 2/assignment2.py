@@ -72,15 +72,15 @@ class LinearRegression_Local:
         previous_cost = None
         # gradient descent learning
         for i in range(len(X)):
-            #w, b = self.update_weights(X, Y, b, previous_cost, costs, w, n)
+            # w, b = self.update_weights(X, Y, b, previous_cost, costs, w, n)
             y_pred = X * w + b
-            #derivative of weight and bias
+            # derivative of weight and bias
             weight_d = (-2/n) * np.nansum(X * (Y-y_pred))
             bias_d = (-2/n) * np.nansum(Y-y_pred)
-            #update weights
+            # update weights
             w = w - (self.learning_rate * weight_d)
             b = b - (self.learning_rate * bias_d)
-        #set final m and b
+        # set final m and b
         self.final_weight = w
         self.final_bias = b
 
@@ -371,6 +371,9 @@ if __name__ == "__main__":
 
     plt.plot(test_y, label='label')
     plt.plot(preds, label='pred')
+    #plt.scatter(test_X, test_y, label='label')
+    # plt.plot([min(test_X), max(test_X)], [min(preds),  max(preds)],  color='red')  # regression line
+
     plt.legend()
     plt.show()
 
