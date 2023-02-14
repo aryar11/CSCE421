@@ -17,6 +17,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import precision_score, recall_score
 from typing import Tuple, List
+from sklearn.metrics import roc_curve, auc
 import scipy.stats
 
 
@@ -192,21 +193,24 @@ def data_preprocess(feature: pd.DataFrame) -> pd.DataFrame:
         and return the concatenated dataframe.
     '''
     # select numbers
-    print(feature)
+    
     numbers = feature.select_dtypes(include=['int64', 'float64'])
     # select everything else
     not_numbers = feature.select_dtypes(exclude=['int64', 'float64'])
+    
     # get_dummies, concact, and return
-    print(pd.concat([numbers, not_numbers]))
-    return pd.concat([pd.get_dummies(numbers), pd.get_dummies(not_numbers)])
+    
+    pd.concat([numbers, pd.get_dummies(not_numbers)]).to_csv('file_name.csv', index=True)
+   
+    return pd.concat([numbers, pd.get_dummies(not_numbers)])
 
 
 def label_transform(labels: pd.Series) -> pd.Series:
     '''
         Transform the labels into numerical format and return the labels
     '''
-    labels.replace('A', 0)
-    print(labels.replace('N', 1))
+    
+    labels.replace('A', 0, inplace=True)
     return labels.replace('N', 1)
 
 ################
@@ -221,8 +225,11 @@ def data_split(features: pd.DataFrame, label: pd.Series, random_state=42) -> Tup
         Split 80% of data as a training set and the remaining 20% of the data as testing set using the given random state
         return training and testing sets in the following order: X_train, X_test, y_train, y_test
     '''
-
-    pass
+    trainX = features.sample(0.8, random_state=random_state)
+    trainY =label.sample(0.8,random_state=random_state)
+    testX = features.sample(0.2, random_state=random_state)
+    testY = label.sample(0.2,random_state=random_state)
+    return trainX, testX, trainY, testY
 
 
 def train_linear_regression(x_train: np.ndarray, y_train: np.ndarray):
@@ -230,10 +237,9 @@ def train_linear_regression(x_train: np.ndarray, y_train: np.ndarray):
         Instantiate an object of LinearRegression class, train the model object
         using training data and return the model object
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    model = LinearRegression()
+    model.fit(train_X, train_y)
+    return model
 
 
 def train_logistic_regression(x_train: np.ndarray, y_train: np.ndarray, max_iter=1000000):
@@ -242,10 +248,8 @@ def train_logistic_regression(x_train: np.ndarray, y_train: np.ndarray, max_iter
         use provided max_iterations for training logistic model
         using training data and return the model object
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    log_reg = LogisticRegression(max_iter= max_iter).fit(x_train,y_train)
+    return log_reg
 
 
 def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.ndarray]:
@@ -253,10 +257,9 @@ def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.nd
         return the tuple consisting the coefficients for each feature for Linear Regression
         and Logistic Regression Models respectively
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    linear_coefficients = linear_model.coef_
+    logistic_coefficients = logistic_model.coef_
+    return linear_coefficients, logistic_coefficients
 
 
 def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.array, np.array, np.array, np.array, float]:
@@ -267,10 +270,13 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
             linear_threshold, linear_reg_area_under_curve]
         Finally plot the ROC Curve
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    linear_reg_pred = linear_model.predict(x_test)
+    fpr, tpr, threshold = roc_curve(y_test, linear_reg_pred)
+    area_under_curve = auc(fpr,tpr)
+
+    return linear_reg_pred, fpr, tpr, threshold, area_under_curve
+
+
 
 
 def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.array, np.array, np.array, np.array, float]:
@@ -281,10 +287,11 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
             log_threshold, log_reg_area_under_curve]
         Finally plot the ROC Curve
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    log_reg_pred = logistic_model.predict(x_test)
+    fpr, tpr, threshold = roc_curve(y_test, log_reg_pred)
+    area_under_curve = auc(fpr,tpr)
+
+    return log_reg_pred, fpr, tpr, threshold, area_under_curve
 
 
 def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray, linear_reg_tpr: np.ndarray, log_threshold: np.ndarray, log_reg_fpr: np.ndarray, log_reg_tpr: np.ndarray) -> Tuple[float, float]:
