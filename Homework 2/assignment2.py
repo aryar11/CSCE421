@@ -19,6 +19,7 @@ from sklearn.metrics import precision_score, recall_score
 from typing import Tuple, List
 from sklearn.metrics import roc_curve, auc
 import scipy.stats
+from numpy import savetxt
 
 
 # Download and read the data.
@@ -193,23 +194,21 @@ def data_preprocess(feature: pd.DataFrame) -> pd.DataFrame:
         and return the concatenated dataframe.
     '''
     # select numbers
-    
+
     numbers = feature.select_dtypes(include=['int64', 'float64'])
     # select everything else
     not_numbers = feature.select_dtypes(exclude=['int64', 'float64'])
-    
+
     # get_dummies, concact, and return
-    
-    pd.concat([numbers, pd.get_dummies(not_numbers)]).to_csv('file_name.csv', index=True)
-   
-    return pd.concat([numbers, pd.get_dummies(not_numbers)])
+    #pd.concat([numbers, pd.get_dummies(not_numbers)],axis=1, join='inner').to_csv('file_name.csv', index=True)
+    return pd.concat([numbers, pd.get_dummies(not_numbers)],axis=1, join='inner')
 
 
 def label_transform(labels: pd.Series) -> pd.Series:
     '''
         Transform the labels into numerical format and return the labels
     '''
-    
+
     labels.replace('A', 0, inplace=True)
     return labels.replace('N', 1)
 
@@ -220,15 +219,13 @@ def label_transform(labels: pd.Series) -> pd.Series:
 ################
 
 
-def data_split(features: pd.DataFrame, label: pd.Series, random_state=42) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def data_split(features: pd.DataFrame, label: pd.Series, random_state_=42) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     '''
         Split 80% of data as a training set and the remaining 20% of the data as testing set using the given random state
         return training and testing sets in the following order: X_train, X_test, y_train, y_test
     '''
-    trainX = features.sample(0.8, random_state=random_state)
-    trainY =label.sample(0.8,random_state=random_state)
-    testX = features.sample(0.2, random_state=random_state)
-    testY = label.sample(0.2,random_state=random_state)
+    trainX, testX = train_test_split(features, test_size=0.2, random_state=random_state_)
+    trainY, testY = train_test_split(label, test_size=0.2, random_state=random_state_)
     return trainX, testX, trainY, testY
 
 
@@ -238,7 +235,7 @@ def train_linear_regression(x_train: np.ndarray, y_train: np.ndarray):
         using training data and return the model object
     '''
     model = LinearRegression()
-    model.fit(train_X, train_y)
+    model.fit(x_train, y_train)
     return model
 
 
@@ -248,7 +245,7 @@ def train_logistic_regression(x_train: np.ndarray, y_train: np.ndarray, max_iter
         use provided max_iterations for training logistic model
         using training data and return the model object
     '''
-    log_reg = LogisticRegression(max_iter= max_iter).fit(x_train,y_train)
+    log_reg = LogisticRegression(max_iter=max_iter).fit(x_train, y_train)
     return log_reg
 
 
@@ -272,11 +269,9 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
     '''
     linear_reg_pred = linear_model.predict(x_test)
     fpr, tpr, threshold = roc_curve(y_test, linear_reg_pred)
-    area_under_curve = auc(fpr,tpr)
+    area_under_curve = auc(fpr, tpr)
 
     return linear_reg_pred, fpr, tpr, threshold, area_under_curve
-
-
 
 
 def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.array, np.array, np.array, np.array, float]:
@@ -289,7 +284,7 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
     '''
     log_reg_pred = logistic_model.predict(x_test)
     fpr, tpr, threshold = roc_curve(y_test, log_reg_pred)
-    area_under_curve = auc(fpr,tpr)
+    area_under_curve = auc(fpr, tpr)
 
     return log_reg_pred, fpr, tpr, threshold, area_under_curve
 
@@ -298,10 +293,11 @@ def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray,
     '''
         return the tuple consisting the thresholds of Linear Regression and Logistic Regression Models respectively
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+
+    #we want to find a point towards topleft of plot. high tpr and low fpr
+    linear_index = np.argmax(linear_reg_tpr - linear_reg_fpr)
+    log_index = np.argmax(log_reg_tpr - log_reg_fpr)
+    return linear_threshold[linear_index], log_threshold[log_index]
 
 
 def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, features: pd.DataFrame, label: pd.Series):
@@ -309,9 +305,15 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
         split the data into 5 groups. Checkout StratifiedKFold in scikit-learn
     '''
 
-    ########################
-    ## Your Solution Here ##
-    ########################
+    skf = StratifiedKFold(n_splits=num_of_folds, shuffle = shuffle)
+    skf.get_n_splits(features, label)
+
+
+    skf = StratifiedKFold(n_splits=num_of_folds, shuffle=shuffle)
+
+    for train_index, test_index in skf.split(features, label):
+        x_train, x_test = features.iloc[train_index], features.iloc[test_index]
+        y_train, y_test = label.iloc[train_index], label.iloc[test_index]
     pass
 
 
@@ -378,7 +380,7 @@ if __name__ == "__main__":
 
     plt.plot(test_y, label='label')
     plt.plot(preds, label='pred')
-    #plt.scatter(test_X, test_y, label='label')
+    # plt.scatter(test_X, test_y, label='label')
     # plt.plot([min(test_X), max(test_X)], [min(preds),  max(preds)],  color='red')  # regression line
 
     plt.legend()
@@ -440,10 +442,8 @@ if __name__ == "__main__":
     linear_threshod, linear_threshod = optimal_thresholds(
         y_test, linear_y_pred, log_y_pred, linear_threshold, log_threshold)
 
-    skf = stratified_k_fold_cross_validation(
-        num_of_folds, final_features, final_label)
-    features_count, auc_log, auc_linear, f1_dict = train_test_folds(
-        skf, num_of_folds)
+    skf = stratified_k_fold_cross_validation(num_of_folds, final_features, final_label)
+    features_count, auc_log, auc_linear, f1_dict = train_test_folds(skf, num_of_folds)
 
     print("Does features change in each fold?")
 
