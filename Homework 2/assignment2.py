@@ -306,15 +306,11 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
     '''
 
     skf = StratifiedKFold(n_splits=num_of_folds, shuffle = shuffle)
-    skf.get_n_splits(features, label)
-
-
-    skf = StratifiedKFold(n_splits=num_of_folds, shuffle=shuffle)
-
-    for train_index, test_index in skf.split(features, label):
-        x_train, x_test = features.iloc[train_index], features.iloc[test_index]
-        y_train, y_test = label.iloc[train_index], label.iloc[test_index]
-    pass
+    skf.split(features, label)
+    #for train_index, test_index in skf.split(features, label):
+    #    x_train, x_test = features.iloc[train_index], features.iloc[test_index]
+    #    y_train, y_test = label.iloc[train_index], label.iloc[test_index]
+    return skf
 
 
 def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.Series) -> Tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
