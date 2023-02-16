@@ -325,6 +325,8 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
     ########################
     ## Your Solution Here ##
     ########################
+    for train_i, test_i in skf:
+        
     pass
 
 
