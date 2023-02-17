@@ -314,7 +314,6 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
 
     return skf
 
-
 def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.Series) -> Tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
     '''
         train and test in for loop with different training and test sets obatined from skf.
