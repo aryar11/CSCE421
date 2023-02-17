@@ -304,7 +304,6 @@ def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray,
 
     return linear_threshold[linear_index], log_threshold[log_index]
 
-
 def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, features: pd.DataFrame, label: pd.Series):
     '''
         split the data into 5 groups. Checkout StratifiedKFold in scikit-learn
