@@ -256,6 +256,7 @@ def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.nd
     '''
     linear_coefficients = linear_model.coef_
     logistic_coefficients = logistic_model.coef_
+    
     return linear_coefficients, logistic_coefficients
 
 
@@ -284,11 +285,11 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
         Finally plot the ROC Curve
     '''
     log_reg_pred = logistic_model.predict_proba(x_test)
-    #print(log_reg_pred)
+    
     fpr, tpr, threshold =  metrics.roc_curve(y_test, log_reg_pred[:, 1])
     area_under_curve = metrics.auc(fpr, tpr)
 
-    return log_reg_pred, fpr, tpr, threshold, area_under_curve
+    return log_reg_pred[:, 1], fpr, tpr, threshold, area_under_curve
 
 
 def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray, linear_reg_tpr: np.ndarray, log_threshold: np.ndarray, log_reg_fpr: np.ndarray, log_reg_tpr: np.ndarray) -> Tuple[float, float]:
@@ -297,8 +298,10 @@ def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray,
     '''
 
     #we want to find a point towards topleft of plot. high tpr and low fpr
+    
     linear_index = np.argmax(linear_reg_tpr - linear_reg_fpr)
     log_index = np.argmax(log_reg_tpr - log_reg_fpr)
+
     return linear_threshold[linear_index], log_threshold[log_index]
 
 
@@ -306,7 +309,6 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
     '''
         split the data into 5 groups. Checkout StratifiedKFold in scikit-learn
     '''
-
     skf = StratifiedKFold(n_splits=num_of_folds, shuffle = shuffle)
     skf.split(features, label)
 
@@ -360,6 +362,7 @@ def is_features_count_changed(features_count: np.array) -> bool:
         compare number of features in each fold (features_count array's each element)
         return true if features count doesn't change in each fold. else return false
     '''
+    print("feature count changed?  ", (np.diff(features_count) == 0).all())
     return (np.diff(features_count) == 0).all()
 
 
@@ -448,12 +451,12 @@ if __name__ == "__main__":
     #print(linear_coef)
     #print(logistic_coef)
 
-    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(
+    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_threshold, linear_reg_area_under_curve = linear_pred_and_area_under_curve(
         linear_model, X_test, y_test)
 
-    log_y_pred, log_reg_fpr, log_reg_tpr, log_reg_area_under_curve, log_threshold = logistic_pred_and_area_under_curve(
+    log_y_pred, log_reg_fpr, log_reg_tpr, log_threshold, log_reg_area_under_curve = logistic_pred_and_area_under_curve(
         logistic_model, X_test, y_test)
-
+    print("log auc:  ", log_reg_area_under_curve, "\n\n",  "lin auc:  ", linear_reg_area_under_curve)
     plt.plot(log_reg_fpr, log_reg_fpr, label='logistic')
     plt.plot(linear_reg_fpr, linear_reg_tpr, label='linear')
     plt.legend()
@@ -467,13 +470,12 @@ if __name__ == "__main__":
     print("Does features change in each fold?")
 
     # call is_features_count_changed function and return true if features count changes in each fold. else return false
-    is_features_count_changed = is_features_count_changed(features_count)
-
-    linear_threshold, log_threshold = optimal_thresholds(linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
-    if is_features_count_changed:
-        print("NO")
-    else:    
-        print("i guess so")
+    #is_features_count_changed(features_count)
+    
+    #print("threshy:"  , linear_threshold, "  ", log_threshold)
+    linear_threshold_, log_threshold_ = optimal_thresholds(linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
+    print("lin thresh:", linear_threshold_, "   log thresh:  ", log_threshold_)
+   
     
 
     auc_linear_mean, auc_linear_open_interval, auc_linear_close_interval = 0, 0, 0
@@ -486,7 +488,7 @@ if __name__ == "__main__":
     # Hint: use mean_confidence_interval function and pass roc_auc_scores of each fold for both models (ex: auc_log)
     # Find mean and 95% confidence interval for the f1 score for each model.
 
-    mean_confidence_interval(auc_log)
-    mean_confidence_interval(auc_linear)
-    mean_confidence_interval(f1_dict['log_reg'])
-    mean_confidence_interval(f1_dict['linear_reg'])
+    print("auc_log:  ", mean_confidence_interval(auc_log))
+    print("auc_lin:  ",mean_confidence_interval(auc_linear))
+    print("log confidence interval:  ",mean_confidence_interval(f1_dict['log_reg']))
+    print("linear confidence interval:  ",mean_confidence_interval(f1_dict['linear_reg']))
