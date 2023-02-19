@@ -18,7 +18,8 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import precision_score, recall_score
 from typing import Tuple, List
 from sklearn.metrics import roc_curve, auc
-import scipy.stats
+import scipy.stats as st
+from numpy import savetxt
 
 
 # Download and read the data.
@@ -193,23 +194,21 @@ def data_preprocess(feature: pd.DataFrame) -> pd.DataFrame:
         and return the concatenated dataframe.
     '''
     # select numbers
-    
+
     numbers = feature.select_dtypes(include=['int64', 'float64'])
     # select everything else
     not_numbers = feature.select_dtypes(exclude=['int64', 'float64'])
-    
+
     # get_dummies, concact, and return
-    
-    pd.concat([numbers, pd.get_dummies(not_numbers)]).to_csv('file_name.csv', index=True)
-   
-    return pd.concat([numbers, pd.get_dummies(not_numbers)])
+    #pd.concat([numbers, pd.get_dummies(not_numbers)],axis=1, join='inner').to_csv('file_name.csv', index=True)
+    return pd.concat([numbers, pd.get_dummies(not_numbers)],axis=1, join='inner')
 
 
 def label_transform(labels: pd.Series) -> pd.Series:
     '''
         Transform the labels into numerical format and return the labels
     '''
-    
+
     labels.replace('A', 0, inplace=True)
     return labels.replace('N', 1)
 
@@ -220,15 +219,13 @@ def label_transform(labels: pd.Series) -> pd.Series:
 ################
 
 
-def data_split(features: pd.DataFrame, label: pd.Series, random_state=42) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def data_split(features: pd.DataFrame, label: pd.Series, random_state_=42) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     '''
         Split 80% of data as a training set and the remaining 20% of the data as testing set using the given random state
         return training and testing sets in the following order: X_train, X_test, y_train, y_test
     '''
-    trainX = features.sample(0.8, random_state=random_state)
-    trainY =label.sample(0.8,random_state=random_state)
-    testX = features.sample(0.2, random_state=random_state)
-    testY = label.sample(0.2,random_state=random_state)
+    trainX, testX = train_test_split(features, test_size=0.2, random_state=random_state_)
+    trainY, testY = train_test_split(label, test_size=0.2, random_state=random_state_)
     return trainX, testX, trainY, testY
 
 
@@ -238,7 +235,7 @@ def train_linear_regression(x_train: np.ndarray, y_train: np.ndarray):
         using training data and return the model object
     '''
     model = LinearRegression()
-    model.fit(train_X, train_y)
+    model.fit(x_train, y_train)
     return model
 
 
@@ -248,7 +245,7 @@ def train_logistic_regression(x_train: np.ndarray, y_train: np.ndarray, max_iter
         use provided max_iterations for training logistic model
         using training data and return the model object
     '''
-    log_reg = LogisticRegression(max_iter= max_iter).fit(x_train,y_train)
+    log_reg = LogisticRegression(max_iter=max_iter).fit(x_train, y_train)
     return log_reg
 
 
@@ -259,6 +256,7 @@ def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.nd
     '''
     linear_coefficients = linear_model.coef_
     logistic_coefficients = logistic_model.coef_
+    
     return linear_coefficients, logistic_coefficients
 
 
@@ -271,12 +269,11 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
         Finally plot the ROC Curve
     '''
     linear_reg_pred = linear_model.predict(x_test)
-    fpr, tpr, threshold = roc_curve(y_test, linear_reg_pred)
-    area_under_curve = auc(fpr,tpr)
+    
+    fpr, tpr, threshold = metrics.roc_curve(y_test, linear_reg_pred)
+    area_under_curve = metrics.auc(fpr, tpr)
 
     return linear_reg_pred, fpr, tpr, threshold, area_under_curve
-
-
 
 
 def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_test: np.ndarray) -> Tuple[np.array, np.array, np.array, np.array, float]:
@@ -287,47 +284,75 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
             log_threshold, log_reg_area_under_curve]
         Finally plot the ROC Curve
     '''
-    log_reg_pred = logistic_model.predict(x_test)
-    fpr, tpr, threshold = roc_curve(y_test, log_reg_pred)
-    area_under_curve = auc(fpr,tpr)
+    log_reg_pred = logistic_model.predict_proba(x_test)
+    
+    fpr, tpr, threshold =  metrics.roc_curve(y_test, log_reg_pred[:, 1])
+    area_under_curve = metrics.auc(fpr, tpr)
 
-    return log_reg_pred, fpr, tpr, threshold, area_under_curve
+    return log_reg_pred[:, 1], fpr, tpr, threshold, area_under_curve
 
 
 def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray, linear_reg_tpr: np.ndarray, log_threshold: np.ndarray, log_reg_fpr: np.ndarray, log_reg_tpr: np.ndarray) -> Tuple[float, float]:
     '''
         return the tuple consisting the thresholds of Linear Regression and Logistic Regression Models respectively
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
 
+    #we want to find a point towards topleft of plot. high tpr and low fpr
+    
+    linear_index = np.argmax(linear_reg_tpr - linear_reg_fpr)
+    log_index = np.argmax(log_reg_tpr - log_reg_fpr)
+
+    return linear_threshold[linear_index], log_threshold[log_index]
 
 def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, features: pd.DataFrame, label: pd.Series):
     '''
         split the data into 5 groups. Checkout StratifiedKFold in scikit-learn
     '''
+    skf = StratifiedKFold(n_splits=num_of_folds, shuffle = shuffle)
+    skf.split(features, label)
 
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
-
+    return skf
 
 def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.Series) -> Tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
     '''
         train and test in for loop with different training and test sets obatined from skf.
-        use a PENALTY of 12 for logitic regression model for training
+        use a PENALTY of l2 for logitic regression model for training
         find features in each fold and store them in features_count array.
         populate auc_log and auc_linear arrays with roc_auc_score of each set trained on logistic regression and linear regression models respectively.
         populate f1_dict['log_reg'] and f1_dict['linear_reg'] arrays with f1_score of trained logistic and linear regression models on each set
         return features_count, auc_log, auc_linear, f1_dict dictionary
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+
+    features_count = np.zeros(num_of_folds, dtype=np.int32)
+    auc_log = np.zeros(num_of_folds)
+    auc_linear = np.zeros(num_of_folds)
+    f1_dict = {'log_reg': np.zeros(num_of_folds), 'linear_reg': np.zeros(num_of_folds)}
+
+    for fold_idx, (train_idx, test_idx) in enumerate(skf.split(features, label)):
+        
+        X_train, y_train = features.iloc[train_idx], label.iloc[train_idx]
+        X_test, y_test = features.iloc[test_idx], label.iloc[test_idx]
+        
+        features_count[fold_idx] = X_train.shape[1]
+        
+        # log reg train 
+        logreg = train_logistic_regression(X_train, y_train)
+        
+        # crunch numbers for log
+        y_pred_log = logreg.predict_proba(X_test)[:, 1]
+        auc_log[fold_idx] = roc_auc_score(y_test, y_pred_log)
+        f1_dict['log_reg'][fold_idx] = f1_score(y_test, logreg.predict(X_test))
+        
+        #linreg time
+        linreg = train_linear_regression(X_train, y_train)
+        
+        #crunch numbers for linear regression
+        y_pred_linear = linreg.predict(X_test)
+        auc_linear[fold_idx] = roc_auc_score(y_test, y_pred_linear)
+        f1_dict['linear_reg'][fold_idx] = f1_score(y_test, (y_pred_linear > 0.5).astype(int))
+        
+    return features_count, auc_log, auc_linear, f1_dict
+
 
 
 def is_features_count_changed(features_count: np.array) -> bool:
@@ -335,23 +360,21 @@ def is_features_count_changed(features_count: np.array) -> bool:
         compare number of features in each fold (features_count array's each element)
         return true if features count doesn't change in each fold. else return false
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    print("feature count changed?  ", (np.diff(features_count) == 0).all())
+    return (np.diff(features_count) == 0).all()
 
 
 def mean_confidence_interval(data: np.array, confidence=0.95) -> Tuple[float, float, float]:
     '''
-        To calculate mean and confidence interval, in scipy checkout .sem to find standard error of the mean of given data (AUROCs/ f1 scores of each model, linear and logistic trained on all sets).
+        To calculate mean and confidence interval, in scipy checkout .sem to find standard error of the mean of given data (AUROCs/ f1 
+        scores of each model, linear and logistic trained on all sets).
         Then compute Percent Point Function available in scipy and mutiply it with standard error calculated earlier to calculate h.
         The required interval is from mean-h to mean+h
         return the tuple consisting of mean, mean -h, mean+h
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    mean = np.mean(data)
+    interval = st.t.interval(alpha=confidence, df=len(data)-1, loc=np.mean(data),scale=st.sem(data))
+    return mean, interval[0], interval[1]
 
 
 if __name__ == "__main__":
@@ -378,7 +401,7 @@ if __name__ == "__main__":
 
     plt.plot(test_y, label='label')
     plt.plot(preds, label='pred')
-    #plt.scatter(test_X, test_y, label='label')
+    # plt.scatter(test_X, test_y, label='label')
     # plt.plot([min(test_X), max(test_X)], [min(preds),  max(preds)],  color='red')  # regression line
 
     plt.legend()
@@ -423,36 +446,35 @@ if __name__ == "__main__":
     linear_coef, logistic_coef = models_coefficients(
         linear_model, logistic_model)
 
-    print(linear_coef)
-    print(logistic_coef)
+    #print(linear_coef)
+    #print(logistic_coef)
 
-    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(
+    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_threshold, linear_reg_area_under_curve = linear_pred_and_area_under_curve(
         linear_model, X_test, y_test)
 
-    log_y_pred, log_reg_fpr, log_reg_tpr, log_reg_area_under_curve, log_threshold = logistic_pred_and_area_under_curve(
+    log_y_pred, log_reg_fpr, log_reg_tpr, log_threshold, log_reg_area_under_curve = logistic_pred_and_area_under_curve(
         logistic_model, X_test, y_test)
-
+    print("log auc:  ", log_reg_area_under_curve, "\n\n",  "lin auc:  ", linear_reg_area_under_curve)
     plt.plot(log_reg_fpr, log_reg_fpr, label='logistic')
     plt.plot(linear_reg_fpr, linear_reg_tpr, label='linear')
     plt.legend()
     plt.show()
 
-    linear_threshod, linear_threshod = optimal_thresholds(
-        y_test, linear_y_pred, log_y_pred, linear_threshold, log_threshold)
+    #linear_threshod, linear_threshod = optimal_thresholds(y_test, linear_y_pred, log_y_pred, linear_threshold, log_threshold)
 
-    skf = stratified_k_fold_cross_validation(
-        num_of_folds, final_features, final_label)
-    features_count, auc_log, auc_linear, f1_dict = train_test_folds(
-        skf, num_of_folds)
+    skf = stratified_k_fold_cross_validation(num_of_folds, True, final_features, final_label)
+    features_count, auc_log, auc_linear, f1_dict = train_test_folds(skf, num_of_folds,  final_features, final_label)
 
     print("Does features change in each fold?")
 
     # call is_features_count_changed function and return true if features count changes in each fold. else return false
-    is_features_count_changed = is_features_count_changed(features_count)
-
-    linear_threshold, log_threshold = optimal_thresholds(
-        linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
-    print(is_features_count_changed)
+    #is_features_count_changed(features_count)
+    
+    #print("threshy:"  , linear_threshold, "  ", log_threshold)
+    linear_threshold_, log_threshold_ = optimal_thresholds(linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
+    print("lin thresh:", linear_threshold_, "   log thresh:  ", log_threshold_)
+   
+    
 
     auc_linear_mean, auc_linear_open_interval, auc_linear_close_interval = 0, 0, 0
     auc_log_mean, auc_log_open_interval, auc_log_close_interval = 0, 0, 0
@@ -464,7 +486,7 @@ if __name__ == "__main__":
     # Hint: use mean_confidence_interval function and pass roc_auc_scores of each fold for both models (ex: auc_log)
     # Find mean and 95% confidence interval for the f1 score for each model.
 
-    mean_confidence_interval(auc_log)
-    mean_confidence_interval(auc_linear)
-    mean_confidence_interval(f1_dict['log_reg'])
-    mean_confidence_interval(f1_dict['linear_reg'])
+    print("auc_log:  ", mean_confidence_interval(auc_log))
+    print("auc_lin:  ",mean_confidence_interval(auc_linear))
+    print("log confidence interval:  ",mean_confidence_interval(f1_dict['log_reg']))
+    print("linear confidence interval:  ",mean_confidence_interval(f1_dict['linear_reg']))
