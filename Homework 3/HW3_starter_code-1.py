@@ -22,10 +22,7 @@ def read_data(filename: str) -> pd.DataFrame:
     """
     Read the data from the filename. Load the data it in a dataframe and return it.
     """
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    return pd.read_csv(filename)
 
 
 @typechecked
@@ -35,10 +32,26 @@ def data_preprocess(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
     Return the final features and final label in same order
     You may use the same code you submiited for problem 2 of HW2
     """
-    #######################
-    ## Your Solution Here ##
-    ########################
-    pass
+    #drop missing values
+    df_dropped_player = df.iloc[: , 1:]
+    df_dropped = df_dropped_player.dropna()
+   
+    #seperate label and features
+    labels = df_dropped["NewLeague"]
+    feature = df_dropped.drop(df_dropped.columns[df_dropped.shape[1] - 1], axis=1)
+    
+    #separate numerical columns from nonumerical column
+    numbers = feature.select_dtypes(include=['int64', 'float64'])
+    # select everything else
+    not_numbers = feature.select_dtypes(exclude=['int64', 'float64'])
+    # get_dummies, concact, and return
+    final_features =  pd.concat([numbers, pd.get_dummies(not_numbers)],axis=1, join='inner')
+    
+    #transform label into numerical format
+    labels.replace('A', 0, inplace=True)
+    final_label = labels.replace('N', 1)
+
+    return final_features , final_label
 
 
 @typechecked
