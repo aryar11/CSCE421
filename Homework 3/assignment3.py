@@ -4,14 +4,18 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from typing import Tuple, List, Optional, Any, Callable, Dict, Union
-from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.metrics import mean_squared_error, roc_curve, roc_auc_score
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.metrics import roc_auc_score
 import random
 from typeguard import typechecked
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.model_selection import GridSearchCV
 
 random.seed(42)
 np.random.seed(42)
@@ -56,16 +60,14 @@ def data_preprocess(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
 
 @typechecked
 def data_split(
-    features: pd.DataFrame, label: pd.Series, test_size: float
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    features: pd.DataFrame, label: pd.Series, test_size: float) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     """
     Split 80% of data as a training set and the remaining 20% of the data as testing set
     return training and testing sets in the following order: X_train, X_test, y_train, y_test
     """
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    trainX, testX = train_test_split(features, test_size=0.2)
+    trainY, testY = train_test_split(label, test_size=0.2)
+    return trainX, testX, trainY, testY
 
 
 @typechecked
@@ -87,14 +89,18 @@ def train_ridge_regression(
     aucs = {"ridge": []}
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
 
-    ########################
-    ## Your Solution Here ##
-    ########################
+    for i in range(n):
+        for alpha_val in lambda_vals:
+            model = Ridge(max_iter=max_iter, alpha=alpha_val)
+            model.fit(x_train, y_train)
+            prediction = model.predict(x_test)
+            aucs["ridge"].append(roc_auc_score(y_test, prediction))
+
 
     print("ridge mean AUCs:")
     ridge_aucs = pd.DataFrame(aucs["ridge"])
     ridge_mean_auc = {}
-    ridge_aucs = pd.DataFrame(aucs["ridge"])
+#    ridge_aucs = pd.DataFrame(aucs["ridge"])
     for lambda_val, ridge_auc in zip(lambda_vals, ridge_aucs.mean()):
         ridge_mean_auc[lambda_val] = ridge_auc
         print("lambda:", lambda_val, "AUC:", "%.4f" % ridge_auc)
@@ -123,6 +129,13 @@ def train_lasso(
     ########################
     ## Your Solution Here ##
     ########################
+    for i in range(n):
+        for alpha_val in lambda_vals:
+            model = Lasso(max_iter=max_iter, alpha=alpha_val)
+            model.fit(x_train, y_train)
+            prediction = model.predict(x_test)
+            aucs["lasso"].append(roc_auc_score(y_test, prediction))
+
 
     print("lasso mean AUCs:")
     lasso_mean_auc = {}
@@ -130,6 +143,7 @@ def train_lasso(
     for lambda_val, lasso_auc in zip(lambda_vals, lasso_aucs.mean()):
         lasso_mean_auc[lambda_val] = lasso_auc
         print("lambda:", lambda_val, "AUC:", "%.4f" % lasso_auc)
+    print(lasso_mean_auc)
     return lasso_mean_auc
 
 
@@ -144,10 +158,13 @@ def ridge_coefficients(
     return the tuple consisting of trained Ridge model with alpha as optimal_alpha and the coefficients
     of the model
     """
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+
+    #training
+    ridge_model = Ridge(alpha=optimal_alpha, max_iter=max_iter)
+    ridge_model.fit(x_train, y_train)
+    # get coefficients of the trained model
+    coefficients = ridge_model.coef_
+    return ridge_model, coefficients
 
 
 @typechecked
@@ -161,25 +178,25 @@ def lasso_coefficients(
     return the tuple consisting of trained Lasso model with alpha as optimal_alpha and the coefficients
     of the model
     """
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    #training
+    lasoo_model = Lasso(alpha=optimal_alpha, max_iter=max_iter)
+    lasoo_model.fit(x_train, y_train)
+
+    #coefficients
+    coefficients = lasoo_model.coef_
+    return lasoo_model , coefficients
+
 
 
 @typechecked
-def ridge_area_under_curve(
-    model_R, x_test: pd.DataFrame, y_test: pd.Series
-) -> float:
+def ridge_area_under_curve(model_R, x_test: pd.DataFrame, y_test: pd.Series) -> float:
     """
     return area under the curve measurements of trained Ridge model used to find coefficients,
     i.e., model tarined with optimal_aplha
     Finally plot the ROC Curve using false_positive_rate, true_positive_rate as x and y axes calculated from roc_curve
     """
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    prediction = model_R.predict(x_test)
+    return roc_auc_score(y_test, prediction)
 
 
 @typechecked
@@ -191,10 +208,8 @@ def lasso_area_under_curve(
     i.e., model tarined with optimal_aplha
     Finally plot the ROC Curve using false_positive_rate, true_positive_rate as x and y axes calculated from roc_curve
     """
-    ########################
-    ## Your Solution Here ##
-    ########################
-    pass
+    prediction = model_L.predict(x_test)
+    return roc_auc_score(y_test, prediction)
 
 
 class Node:
@@ -349,14 +364,12 @@ class TreeClassifier(TreeRegressor):
 
 if __name__ == "__main__":
     # Question 1
-    filename = ""  # Provide the path of the dataset
+    filename = "hitters.csv"  # Provide the path of the dataset
     df = read_data(filename)
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
     max_iter = 1e8
     final_features, final_label = data_preprocess(df)
-    x_train, x_test, y_train, y_test = data_split(
-        final_features, final_label, 0.2
-    )
+    x_train, x_test, y_train, y_test = data_split(final_features, final_label, 0.2)
     ridge_mean_acu = train_ridge_regression(x_train, y_train, x_test, y_test)
     lasso_mean_acu = train_lasso(x_train, y_train, x_test, y_test)
     model_R, ridge_coeff = ridge_coefficients(x_train, y_train, 10)
@@ -369,18 +382,24 @@ if __name__ == "__main__":
     ########################
     ## Your Solution Here ##
     ########################
-
+    R_prediction = model_R.predict(x_test)
+    R_fpr, R_tpr, R_thresholds = metrics.roc_curve(y_test, R_prediction)
+    plt.plot(R_fpr, R_tpr, label="Ridge Regression")
+    plt.legend()
+    plt.show()
     lasso_auc = lasso_area_under_curve(model_L, x_test, y_test)
 
     # Plot the ROC curve of the Lasso Model.
     # Include axes labels, legend and title in the Plot.
     # Any of the missing items in plot will result in loss of points.
-    ########################
-    ## Your Solution Here ##
-    ########################
+    L_prediction = model_L.predict(x_test)
+    L_fpr, L_tpr, L_thresholds = metrics.roc_curve(y_test, L_prediction)
+    plt.plot(L_fpr, L_tpr, label="Lasso")
+    plt.legend()
+    plt.show()
 
     # SUB Q1
-    data_regress = np.loadtxt(csvname, delimiter=",")
+    data_regress = np.loadtxt("noisy_sin_subsample_2.csv", delimiter=",")
     data_regress = np.array([[x, y] for x, y in zip(*data_regress)])
     plt.figure()
     plt.scatter(data_regress[:, 0], data_regress[:, 1])
