@@ -126,9 +126,7 @@ def train_lasso(
     aucs = {"lasso": []}
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
 
-    ########################
-    ## Your Solution Here ##
-    ########################
+
     for i in range(n):
         for alpha_val in lambda_vals:
             model = Lasso(max_iter=max_iter, alpha=alpha_val)
@@ -241,6 +239,7 @@ class TreeRegressor:
         )
         self.max_depth = max_depth  # maximum depth
         # YOU MAY ADD ANY OTHER VARIABLES THAT YOU NEED HERE
+        self.root = None
         # YOU MAY ALSO ADD FUNCTIONS **WITHIN CLASS or functions INSIDE CLASS** TO HELP YOU ORGANIZE YOUR BETTER
         ## YOUR CODE HERE
 
@@ -249,10 +248,10 @@ class TreeRegressor:
         """
         Build the tree
         """
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        pass
+        self.root = self.get_best_split(self.data)
+        self.split(self.root, 1)
+        return self.root
+        
 
     @typechecked
     def mean_squared_error(
@@ -263,46 +262,64 @@ class TreeRegressor:
         left split is a list of rows of a df, rightmost element is label
         return the sum of mse of left split and right split
         """
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        pass
+        mse_left = np.mean((left_split[:, -1] - np.mean(left_split[:, -1])) ** 2)
+        mse_right = np.mean((right_split[:, -1] - np.mean(right_split[:, -1])) ** 2)
+        return mse_left + mse_right
 
     @typechecked
     def split(self, node: Node, depth: int) -> None:
         """
         Do the split operation recursively
         """
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        pass
+        left_data, right_data = self.one_step_split(node.data["index"], node.split_val, self.data)
+
+        if len(left_data) == 0 or len(right_data) == 0 or depth == self.max_depth:
+            node.left = Node(split_val=np.mean(left_data[:, -1]), data=left_data)
+            node.right = Node(split_val=np.mean(right_data[:, -1]), data=right_data)
+            return
+
+        node.left = self.get_best_split(left_data)
+        self.split(node.left, depth+1)
+
+        node.right = self.get_best_split(right_data)
+        self.split(node.right, depth+1)
 
     @typechecked
     def get_best_split(self, data: np.ndarray) -> Node:
         """
         Select the best split point for a dataset AND create a Node
         """
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        pass
+        class_values = np.unique(data[:, -1])
+        best_index, best_value, best_score = 999, 999, 999
+
+        for index in range(data.shape[1]-1):
+            for row in data:
+                left, right = self.one_step_split(index, row[index], data)
+                if len(left) == 0 or len(right) == 0:
+                    continue
+
+                score = self.mean_squared_error(left, right)
+                if score < best_score:
+                    best_index, best_value, best_score = index, row[index], score
+
+        return Node(best_value, data={"index": best_index, "data": data})
 
     @typechecked
-    def one_step_split(
-        self, index: int, value: float, data: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def one_step_split(self, index: int, value: float, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Split a dataset based on an attribute and an attribute value
         index is the variable to be split on (left split < threshold)
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        pass
-
+        left_split = []
+        right_split = []
+        for row in data:
+            if row[index] < value:
+                left_split.append(row)
+            else:
+                right_split.append(row)
+        return np.array(left_split), np.array(right_split)
 
 @typechecked
 def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
@@ -364,7 +381,7 @@ class TreeClassifier(TreeRegressor):
 
 if __name__ == "__main__":
     # Question 1
-    filename = "hitters.csv"  # Provide the path of the dataset
+    """     filename = "hitters.csv"  # Provide the path of the dataset
     df = read_data(filename)
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
     max_iter = 1e8
@@ -397,7 +414,7 @@ if __name__ == "__main__":
     plt.plot(L_fpr, L_tpr, label="Lasso")
     plt.legend()
     plt.show()
-
+ """
     # SUB Q1
     data_regress = np.loadtxt("noisy_sin_subsample_2.csv", delimiter=",")
     data_regress = np.array([[x, y] for x, y in zip(*data_regress)])
@@ -413,10 +430,7 @@ if __name__ == "__main__":
         tree = regressor.build_tree()
         mse = 0.0
         for data_point in data_regress:
-            mse += (
-                data_point[1]
-                - predict(tree, data_point, compare_node_with_threshold)
-            ) ** 2
+            mse += (data_point[1]- predict(tree, data_point, compare_node_with_threshold)) ** 2
         mse_depths.append(mse / len(data_regress))
     plt.figure()
     plt.plot(mse_depths)
@@ -442,10 +456,7 @@ if __name__ == "__main__":
         tree = classifier.build_tree()
         correct = 0.0
         for data_point in data_class:
-            correct += float(
-                data_point[2]
-                == predict(tree, data_point, compare_node_with_threshold)
-            )
+            correct += float(data_point[2]== predict(tree, data_point, compare_node_with_threshold))
         accuracy_depths.append(correct / len(data_class))
     # Plot the MSE
     plt.figure()
