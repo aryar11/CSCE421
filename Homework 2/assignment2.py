@@ -269,7 +269,7 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
         Finally plot the ROC Curve
     '''
     linear_reg_pred = linear_model.predict(x_test)
-    
+
     fpr, tpr, threshold = metrics.roc_curve(y_test, linear_reg_pred)
     area_under_curve = metrics.auc(fpr, tpr)
 
