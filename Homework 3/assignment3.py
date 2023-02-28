@@ -254,9 +254,7 @@ class TreeRegressor:
         
 
     @typechecked
-    def mean_squared_error(
-        self, left_split: np.ndarray, right_split: np.ndarray
-    ) -> float:
+    def mean_squared_error(self, left_split: np.ndarray, right_split: np.ndarray ) -> float:
         """
         Calculate the mean squared error for a split dataset
         left split is a list of rows of a df, rightmost element is label
@@ -289,7 +287,7 @@ class TreeRegressor:
         """
         Select the best split point for a dataset AND create a Node
         """
-        class_values = np.unique(data[:, -1])
+        
         best_index, best_value, best_score = 999, 999, 999
 
         for index in range(data.shape[1]-1):
@@ -303,6 +301,7 @@ class TreeRegressor:
                     best_index, best_value, best_score = index, row[index], score
 
         return Node(best_value, data={"index": best_index, "data": data})
+
 
     @typechecked
     def one_step_split(self, index: int, value: float, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -327,20 +326,33 @@ def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     Return True if node's value > row's value (of the variable)
     Else False
     """
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
-    pass
+ #   print(node.data, "\n\n\n")
+ #   print(node.data["index"])
+    index = node.data["index"]
+    variable_value = row[index]
+    return bool(node.split_val > variable_value)
 
 
 @typechecked
-def predict(
-    node: Node, row: np.ndarray, comparator: Callable[[Node, np.ndarray], bool]
-) -> float:
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
-    pass
+def predict( node: Node, row: np.ndarray, comparator: Callable[[Node, np.ndarray], bool]) -> float:
+    """while node.left or node.right:
+        print(isinstance(comparator(node,row).astype(bool)), bool)
+        if comparator(node, row):
+            node = node.left
+        else:
+            node = node.right
+
+    #return value at the leaf node
+    return node.split_val"""
+   
+    if node.left is None and node.right is None:
+        # leaf node
+        return node.split_val
+
+    if (bool(comparator(node, row))):
+        return predict(node.left, row, comparator)
+    else:
+        return predict(node.right, row, comparator)
 
 
 class TreeClassifier(TreeRegressor):
@@ -425,6 +437,7 @@ if __name__ == "__main__":
     plt.show()
 
     mse_depths = []
+    
     for depth in range(1, 5):
         regressor = TreeRegressor(data_regress, depth)
         tree = regressor.build_tree()
