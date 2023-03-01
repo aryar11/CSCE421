@@ -266,6 +266,7 @@ class TreeRegressor:
         """
         left_mse = np.mean((left_split[:, -1] - np.mean(left_split[:, -1])) ** 2)
         right_mse = np.mean((right_split[:, -1] - np.mean(right_split[:, -1])) ** 2)
+        print(left_mse , "   right_MSE", right_mse, "\n\n\n\n\n\n")
         return left_mse + right_mse
 
     @typechecked
@@ -274,18 +275,11 @@ class TreeRegressor:
         Do the split operation recursively
         """
         X, Y = self.data[:, 0], self.data[:,-1]
-        num_samples, num_features = np.shape(X)
-        best_split = {}
-        # split until stopping conditions are met
-        if depth<=self.max_depth:
-            # find the best split
-            new_node = self.get_best_split(np.concatenate((node.data["left"], node.data["right"]), axis=0))
-
-
+        #checking if done
         if node is None:
             return
 
-        data = node.data
+        data = node.data["data"]
 
         if depth >= self.max_depth:
             node.left = None
@@ -299,24 +293,15 @@ class TreeRegressor:
             node.left = None
             node.right = None
             return
-
-        best_split = self.get_best_split(data)
-        if best_split is None:
-            return
-
-        node.split_val = best_split["threshold"]
-        node.data = None
-        node.left = Node(None)
-        node.right = Node(None)
-
-        left_data = best_split["left_data"]
-        right_data = best_split["right_data"]
-
-        self.split(node.left, depth + 1)
-        self.split(node.right, depth + 1)
-
-        node.left.data = left_data
-        node.right.data = right_data
+       
+        # recur left
+        node.left = self.get_best_split(node.data["left"])
+        self.split(self.get_best_split(node.data["left"]), depth+1)
+        # recur right
+        node.right = self.get_best_split(node.data["right"])
+        self.split(self.get_best_split(node.data["right"]), depth+1)
+        return
+        
 
     @typechecked
     def get_best_split(self, data: np.ndarray) -> Node:
@@ -329,11 +314,12 @@ class TreeRegressor:
         # target values: data_regress[:, 1]
         #featues data_regress[:, 0]
         best_index, best_value, best_score = 999, 999, 999
-        for index in range(data.shape[0]-1):
-            for row in data:
+        for index in range(0,data.shape[1]-1):
+            for index, row in enumerate(data):
                 left, right = self.one_step_split(index, row[0], data)
-                if not left.any() or not right.any():
-                    continue
+                #if not left.any() or not right.any():
+                #    continue
+                print(left , "  ", right)
                 score = self.mean_squared_error(left, right)
                 if score < best_score:
                     best_index, best_value, best_score = index, row[index], score
@@ -347,7 +333,6 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
-        #print("before \n",data , "after", index)
         dataset_left = np.array([row for row in data if data[index][0]<=value])
         dataset_right = np.array([row for row in data if data[index][0] >value])
         return dataset_left, dataset_right
