@@ -287,7 +287,7 @@ class TreeRegressor:
         """
         Select the best split point for a dataset AND create a Node
         """
-        
+        class_values = np.unique(data[:, -1])
         best_index, best_value, best_score = 999, 999, 999
 
         for index in range(data.shape[1]-1):
@@ -301,6 +301,34 @@ class TreeRegressor:
                     best_index, best_value, best_score = index, row[index], score
 
         return Node(best_value, data={"index": best_index, "data": data})
+    
+        # dictionary to store the best split
+        best_split = {}
+        max_var_red = -float("inf")
+        # loop over all the features
+        for feature_index in range(num_features):
+            feature_values = dataset[:, feature_index]
+            possible_thresholds = np.unique(feature_values)
+            # loop over all the feature values present in the data
+            for threshold in possible_thresholds:
+                # get current split
+                dataset_left, dataset_right = self.split(dataset, feature_index, threshold)
+                # check if childs are not null
+                if len(dataset_left)>0 and len(dataset_right)>0:
+                    left_y, right_y =  dataset_left[:, -1], dataset_right[:, -1]
+                    # compute information gain
+                    curr_var_red = self.mean_squared_error( left_y, right_y)
+                    # update the best split if needed
+                    if curr_var_red>max_var_red:
+                        best_split["feature_index"] = feature_index
+                        best_split["threshold"] = threshold
+                        best_split["dataset_left"] = dataset_left
+                        best_split["dataset_right"] = dataset_right
+                        best_split["var_red"] = curr_var_red
+                        max_var_red = curr_var_red
+                        
+        # return best split
+        return best_split 
 
 
     @typechecked
@@ -311,15 +339,9 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
-        left_split = []
-        right_split = []
-        for row in data:
-            if row[index] < value:
-                left_split.append(row)
-            else:
-                right_split.append(row)
-        return np.array(left_split), np.array(right_split)
-
+        data_left = np.array([row for row in data if row[index]<=value])
+        data_right = np.array([row for row in data if row[index]>value])
+        return data_left, data_right
 @typechecked
 def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     """
