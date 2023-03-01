@@ -240,6 +240,7 @@ class TreeRegressor:
         self.max_depth = max_depth  # maximum depth
         # YOU MAY ADD ANY OTHER VARIABLES THAT YOU NEED HERE
         self.root = None
+        self.current_depth = None
         # YOU MAY ALSO ADD FUNCTIONS **WITHIN CLASS or functions INSIDE CLASS** TO HELP YOU ORGANIZE YOUR BETTER
         ## YOUR CODE HERE
 
@@ -249,7 +250,7 @@ class TreeRegressor:
         Build the tree
         """
         self.root = self.get_best_split(self.data)
-        self.split(self.root, 1)
+        self.split(self.root, 0)
         return self.root
         
 
@@ -260,64 +261,59 @@ class TreeRegressor:
         left split is a list of rows of a df, rightmost element is label
         return the sum of mse of left split and right split
         """
-        mse_left = np.mean((left_split[:, -1] - np.mean(left_split[:, -1])) ** 2)
-        mse_right = np.mean((right_split[:, -1] - np.mean(right_split[:, -1])) ** 2)
-        return mse_left + mse_right
+        print(left_split.shape)
+        print(right_split.shape)
+        if left_split.ndim == 1  or right_split.ndim == 1:
+                left_mse = np.mean((left_split - np.mean(left_split)) ** 2)
+                right_mse = np.mean((right_split - np.mean(right_split)) ** 2)
+                return left_mse + right_mse
+        else:
+            left_y = left_split[:, -1]
+            right_y = right_split[:, -1]
+            mse = (np.sum((left_y - np.mean(left_y)) ** 2) + np.sum((right_y - np.mean(right_y)) ** 2)) / (len(left_y) + len(right_y))
+            return mse
 
     @typechecked
     def split(self, node: Node, depth: int) -> None:
         """
         Do the split operation recursively
         """
-        left_data, right_data = self.one_step_split(node.data["index"], node.split_val, self.data)
-
-        if len(left_data) == 0 or len(right_data) == 0 or depth == self.max_depth:
-            node.left = Node(split_val=np.mean(left_data[:, -1]), data=left_data)
-            node.right = Node(split_val=np.mean(right_data[:, -1]), data=right_data)
+        left_data, right_data = self.one_step_split(node.data["feature_index"], node.split_val, node.data["data"])
+        if len(left_data) == 0 or len(right_data) == 0:
+            node.left = node.right = Node(np.mean(node.data["threshold"][:, -1]), data=node.data)
             return
 
-        node.left = self.get_best_split(left_data)
-        self.split(node.left, depth+1)
+        if depth == self.max_depth:
+            node.left = Node(np.mean(left_data[:, -1]), data={"data": left_data, "feature_index": None})
+            node.right = Node(np.mean(right_data[:, -1]), data={"data": right_data, "feature_index": None})
+            return
 
-        node.right = self.get_best_split(right_data)
-        self.split(node.right, depth+1)
+        node.left = Node(None, data={"data": left_data, "feature_index": None})
+        node.right = Node(None, data={"data": right_data, "feature_index": None})
+        self.split(node.left, depth + 1)
+        self.split(node.right, depth + 1)
 
     @typechecked
     def get_best_split(self, data: np.ndarray) -> Node:
         """
         Select the best split point for a dataset AND create a Node
         """
-        class_values = np.unique(data[:, -1])
-        best_index, best_value, best_score = 999, 999, 999
-
-        for index in range(data.shape[1]-1):
-            for row in data:
-                left, right = self.one_step_split(index, row[index], data)
-                if len(left) == 0 or len(right) == 0:
-                    continue
-
-                score = self.mean_squared_error(left, right)
-                if score < best_score:
-                    best_index, best_value, best_score = index, row[index], score
-
-        return Node(best_value, data={"index": best_index, "data": data})
-    
         # dictionary to store the best split
         best_split = {}
         max_var_red = -float("inf")
         # loop over all the features
-        for feature_index in range(num_features):
-            feature_values = dataset[:, feature_index]
+        for feature_index in range(data.shape[1]-1):
+            feature_values = data[:, feature_index]
             possible_thresholds = np.unique(feature_values)
             # loop over all the feature values present in the data
             for threshold in possible_thresholds:
                 # get current split
-                dataset_left, dataset_right = self.split(dataset, feature_index, threshold)
+                dataset_left, dataset_right = self.one_step_split(feature_index, threshold, data)
                 # check if childs are not null
                 if len(dataset_left)>0 and len(dataset_right)>0:
-                    left_y, right_y =  dataset_left[:, -1], dataset_right[:, -1]
+                    y, left_y, right_y = data[:, -1], dataset_left[:, -1], dataset_right[:, -1]
                     # compute information gain
-                    curr_var_red = self.mean_squared_error( left_y, right_y)
+                    curr_var_red = self.mean_squared_error(left_y, right_y)
                     # update the best split if needed
                     if curr_var_red>max_var_red:
                         best_split["feature_index"] = feature_index
@@ -325,11 +321,11 @@ class TreeRegressor:
                         best_split["dataset_left"] = dataset_left
                         best_split["dataset_right"] = dataset_right
                         best_split["var_red"] = curr_var_red
+                        best_split["data"] = y
                         max_var_red = curr_var_red
                         
         # return best split
-        return best_split 
-
+        return Node(threshold, best_split)
 
     @typechecked
     def one_step_split(self, index: int, value: float, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -339,9 +335,16 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
-        data_left = np.array([row for row in data if row[index]<=value])
-        data_right = np.array([row for row in data if row[index]>value])
-        return data_left, data_right
+        left_split = []
+        right_split = []
+        print(data)
+        for row in data:
+            if row[index] < value:
+                left_split.append(row)
+            else:
+                right_split.append(row)
+        return np.array(left_split), np.array(right_split)
+    
 @typechecked
 def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     """
