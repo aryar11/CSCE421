@@ -270,9 +270,11 @@ class TreeRegressor:
         left split is a list of rows of a df, rightmost element is label
         return the sum of mse of left split and right split
         """
+        print("MSE:", left_split)
+        print(right_split)
         left_mse = np.mean((left_split[:, -1] - np.mean(left_split[:, -1])) ** 2)
         right_mse = np.mean((right_split[:, -1] - np.mean(right_split[:, -1])) ** 2)
-        print(left_mse , "   right_MSE", right_mse, "\n\n\n\n\n\n")
+        
         return left_mse + right_mse
 
     @typechecked
@@ -318,9 +320,9 @@ class TreeRegressor:
 
         # loop over all the features
         # target values: data_regress[:, 1]
-        #featues data_regress[:, 0]
+        # featues data_regress[:, 0]
         best_index, best_value, best_score = 999, 999, 999
-        for index in range(0,data.shape[1]-1):
+        for index in range(0,data.shape[1]-1): #just one loop
             for index, row in enumerate(data):
                 left, right = self.one_step_split(index, row[0], data)
                 #if not left.any() or not right.any():
