@@ -90,11 +90,14 @@ def train_ridge_regression(
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
 
     for i in range(n):
+        auc = []
         for alpha_val in lambda_vals:
             model = Ridge(max_iter=max_iter, alpha=alpha_val)
             model.fit(x_train, y_train)
             prediction = model.predict(x_test)
-            aucs["ridge"].append(roc_auc_score(y_test, prediction))
+            #aucs["ridge"].append(roc_auc_score(y_test, prediction))
+            auc.append(roc_auc_score(y_test, prediction))
+        aucs["ridge"].append(auc)
 
 
     print("ridge mean AUCs:")
@@ -128,11 +131,14 @@ def train_lasso(
 
 
     for i in range(n):
+        auc = []
         for alpha_val in lambda_vals:
             model = Lasso(max_iter=max_iter, alpha=alpha_val)
             model.fit(x_train, y_train)
             prediction = model.predict(x_test)
-            aucs["lasso"].append(roc_auc_score(y_test, prediction))
+            auc.append(roc_auc_score(y_test, prediction))
+            #aucs["lasso"].append(roc_auc_score(y_test, prediction))
+        aucs["lasso"].append(auc)
 
 
     print("lasso mean AUCs:")
@@ -334,7 +340,7 @@ class TreeRegressor:
         each list has elements as `rows' of the df
         """
         dataset_left = np.array([row for row in data if data[index][0]<=value])
-        dataset_right = np.array([row for row in data if data[index][0] >value])
+        dataset_right = np.array([row for row in data if data[index][0] > value])
         return dataset_left, dataset_right
         
 @typechecked
@@ -410,7 +416,7 @@ class TreeClassifier(TreeRegressor):
 
 if __name__ == "__main__":
     # Question 1
-    """     filename = "hitters.csv"  # Provide the path of the dataset
+    filename = "hitters.csv"  # Provide the path of the dataset
     df = read_data(filename)
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
     max_iter = 1e8
@@ -443,7 +449,7 @@ if __name__ == "__main__":
     plt.plot(L_fpr, L_tpr, label="Lasso")
     plt.legend()
     plt.show()
- """
+ 
     # SUB Q1
     data_regress = np.loadtxt("noisy_sin_subsample_2.csv", delimiter=",")
     data_regress = np.array([[x, y] for x, y in zip(*data_regress)])
