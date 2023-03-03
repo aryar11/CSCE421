@@ -95,7 +95,6 @@ def train_ridge_regression(
             model = Ridge(max_iter=max_iter, alpha=alpha_val)
             model.fit(x_train, y_train)
             prediction = model.predict(x_test)
-            #aucs["ridge"].append(roc_auc_score(y_test, prediction))
             auc.append(roc_auc_score(y_test, prediction))
         aucs["ridge"].append(auc)
 
@@ -103,7 +102,6 @@ def train_ridge_regression(
     print("ridge mean AUCs:")
     ridge_aucs = pd.DataFrame(aucs["ridge"])
     ridge_mean_auc = {}
-#    ridge_aucs = pd.DataFrame(aucs["ridge"])
     for lambda_val, ridge_auc in zip(lambda_vals, ridge_aucs.mean()):
         ridge_mean_auc[lambda_val] = ridge_auc
         print("lambda:", lambda_val, "AUC:", "%.4f" % ridge_auc)
@@ -137,7 +135,6 @@ def train_lasso(
             model.fit(x_train, y_train)
             prediction = model.predict(x_test)
             auc.append(roc_auc_score(y_test, prediction))
-            #aucs["lasso"].append(roc_auc_score(y_test, prediction))
         aucs["lasso"].append(auc)
 
 
@@ -297,11 +294,11 @@ class TreeRegressor:
         if len(data) == 0:
             return
 
-        if len(np.unique(data[:, -1])) == 1:
+        """if len(np.unique(data[:, -1])) == 1:
             node.left = None
             node.right = None
             return
-       
+        """
         # recur left
         node.left = self.get_best_split(node.data["left"])
         self.split(self.get_best_split(node.data["left"]), depth+1)
@@ -309,7 +306,7 @@ class TreeRegressor:
         node.right = self.get_best_split(node.data["right"])
         self.split(self.get_best_split(node.data["right"]), depth+1)
         return
-        
+
 
     @typechecked
     def get_best_split(self, data: np.ndarray) -> Node:
@@ -320,9 +317,9 @@ class TreeRegressor:
 
         # loop over all the features
         # target values: data_regress[:, 1]
-        # featues data_regress[:, 0]
+        # featues: data_regress[:, 0]
         best_index, best_value, best_score = 999, 999, 999
-        for index in range(0,data.shape[1]-1): #just one loop
+        for index in range(0 ,data.shape[1]-1): #just one loop since there's only one feature in this dataset
             for index, row in enumerate(data):
                 left, right = self.one_step_split(index, row[0], data)
                 #if not left.any() or not right.any():
@@ -344,7 +341,7 @@ class TreeRegressor:
         dataset_left = np.array([row for row in data if data[index][0]<=value])
         dataset_right = np.array([row for row in data if data[index][0] > value])
         return dataset_left, dataset_right
-        
+
 @typechecked
 def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     """
@@ -369,7 +366,7 @@ def predict( node: Node, row: np.ndarray, comparator: Callable[[Node, np.ndarray
 
     #return value at the leaf node
     return node.split_val"""
-   
+
     if node.left is None and node.right is None:
         # leaf node
         return node.split_val
@@ -383,26 +380,26 @@ def predict( node: Node, row: np.ndarray, comparator: Callable[[Node, np.ndarray
 class TreeClassifier(TreeRegressor):
     def build_tree(self):
         ## Note: You can remove this if you want to use build tree from Tree Regressor
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        pass
+        self.root = self.get_best_split(self.data)
+        self.split(self.root, 0)
+        return self.root
 
     @typechecked
-    def gini_index(
-        self,
-        left_split: np.ndarray,
-        right_split: np.ndarray,
-        classes: List[float],
-    ) -> float:
+    def gini_index(self,left_split: np.ndarray,right_split: np.ndarray,classes: List[float],) -> float:
         """
         Calculate the Gini index for a split dataset
         Similar to MSE but Gini index instead
         """
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        pass
+        n_instances = float(len(left_split) + len(right_split))
+        gini = 0.0
+        for class_val in classes:
+            left_class_count = [row[-1] for row in left_split].count(class_val)
+            left_class_prob = left_class_count / len(left_split) if len(left_split) > 0 else 0
+            right_class_count = [row[-1] for row in right_split].count(class_val)
+            right_class_prob = right_class_count / len(right_split) if len(right_split) > 0 else 0
+            weighted_prob = (left_class_prob + right_class_prob) * (left_class_count + right_class_count) / n_instances
+            gini += (weighted_prob * (1.0 - weighted_prob))
+        return gini
 
     @typechecked
     def get_best_split(self, data: np.ndarray) -> Node:
@@ -410,14 +407,22 @@ class TreeClassifier(TreeRegressor):
         Select the best split point for a dataset
         """
         classes = list(set(row[-1] for row in data))
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        pass
+        best_index, best_value, best_score, best_groups = 999, 999, 999, None
+        for index in range(len(data[0])-1):
+            for row in data:
+                groups = self.one_step_split(index, row[index], data)
+                gini = self.gini_index(groups[0], groups[1], classes)
+                if gini < best_score:
+                    best_index, best_value, best_score, best_groups = index, row[index], gini, groups
+        node = Node(best_value)
+        node.data = data={"threshold": best_value , "index": best_index , "gini": best_score, "data" : best_groups}
+        return node
+
 
 
 if __name__ == "__main__":
     # Question 1
+    """    
     filename = "hitters.csv"  # Provide the path of the dataset
     df = read_data(filename)
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
@@ -440,6 +445,8 @@ if __name__ == "__main__":
     R_fpr, R_tpr, R_thresholds = metrics.roc_curve(y_test, R_prediction)
     plt.plot(R_fpr, R_tpr, label="Ridge Regression")
     plt.legend()
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
     plt.show()
     lasso_auc = lasso_area_under_curve(model_L, x_test, y_test)
 
@@ -449,16 +456,21 @@ if __name__ == "__main__":
     L_prediction = model_L.predict(x_test)
     L_fpr, L_tpr, L_thresholds = metrics.roc_curve(y_test, L_prediction)
     plt.plot(L_fpr, L_tpr, label="Lasso")
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
     plt.legend()
     plt.show()
- 
+    """
+
+
     # SUB Q1
+    
     data_regress = np.loadtxt("noisy_sin_subsample_2.csv", delimiter=",")
     data_regress = np.array([[x, y] for x, y in zip(*data_regress)])
     plt.figure()
     plt.scatter(data_regress[:, 0], data_regress[:, 1])
-    print(data_regress, "\n\n",data_regress[:, 0], "\n\n" ,data_regress[:, 1] )
-    print(data_regress.shape, "\n\n",data_regress[:, 0].shape, "\n\n" ,data_regress[:, 1].shape )
+    #debugging print(data_regress, "\n\n",data_regress[:, 0], "\n\n" ,data_regress[:, 1] )
+    #debugging print(data_regress.shape, "\n\n",data_regress[:, 0].shape, "\n\n" ,data_regress[:, 1].shape )
 
     plt.xlabel("Features, x")
     plt.ylabel("Target values, y")
@@ -478,7 +490,7 @@ if __name__ == "__main__":
     plt.xlabel("Depth")
     plt.ylabel("MSE")
     plt.show()
-
+    
     # SUB Q2
     csvname = "new_circle_data.csv"  # Place the CSV file in the same directory as this notebook
     data_class = np.loadtxt(csvname, delimiter=",")
