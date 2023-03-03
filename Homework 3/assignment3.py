@@ -241,14 +241,12 @@ class TreeRegressor:
             data  # last element of each row in data is the target variable
         )
         self.max_depth = max_depth  # maximum depth
-        # YOU MAY ADD ANY OTHER VARIABLES THAT YOU NEED HERE
+
         self.root = None
         self.current_depth = None
-        self.features =  data[:, 0]
-        self.label = data[:, 1] 
+        self.features =  data[:, 0]  #never really used his varible atm 
+        self.label = data[:, 1]      #never really used his varible atm 
 
-        # YOU MAY ALSO ADD FUNCTIONS **WITHIN CLASS or functions INSIDE CLASS** TO HELP YOU ORGANIZE YOUR BETTER
-        ## YOUR CODE HERE
 
     @typechecked
     def build_tree(self) -> Node:
@@ -267,9 +265,7 @@ class TreeRegressor:
         left split is a list of rows of a df, rightmost element is label
         return the sum of mse of left split and right split
         """
-        print("MSE:", left_split)
-        print(right_split)
-        left_mse = np.mean((left_split[:, -1] - np.mean(left_split[:, -1])) ** 2)
+        left_mse = np.mean((left_split[:, -1] - np.mean(left_split[:, -1])) ** 2)  #was not too sure how to implement this
         right_mse = np.mean((right_split[:, -1] - np.mean(right_split[:, -1])) ** 2)
         
         return left_mse + right_mse
@@ -279,32 +275,31 @@ class TreeRegressor:
         """
         Do the split operation recursively
         """
-        X, Y = self.data[:, 0], self.data[:,-1]
         #checking if done
         if node is None:
             return
-
-        data = node.data["data"]
-
         if depth >= self.max_depth:
             node.left = None
             node.right = None
             return
 
+        data = node.data["data"]
+        #making sure there's data
         if len(data) == 0:
             return
 
-        """if len(np.unique(data[:, -1])) == 1:
-            node.left = None
-            node.right = None
-            return
-        """
         # recur left
         node.left = self.get_best_split(node.data["left"])
-        self.split(self.get_best_split(node.data["left"]), depth+1)
+        if node.left.split_val == 999: #this is to check if get_best_split actually found a best split.
+            node.left = None
+            return
+        self.split(node.left, depth+1) #recurse left
         # recur right
         node.right = self.get_best_split(node.data["right"])
-        self.split(self.get_best_split(node.data["right"]), depth+1)
+        if node.right.split_val == 999: #this is to check if get_best_split actually found a best split.
+            node.right = None
+            return
+        self.split(node.right, depth+1)  #recurse right
         return
 
 
@@ -313,22 +308,24 @@ class TreeRegressor:
         """
         Select the best split point for a dataset AND create a Node
         """
-        # dictionary to store the best split
-
-        # loop over all the features
         # target values: data_regress[:, 1]
         # featues: data_regress[:, 0]
-        best_index, best_value, best_score = 999, 999, 999
+
+
+        # loop over all the features
+        #initialize values of the "best split"
+        best_index, best_value, best_score, best_threshold = 999, 999, 999, 999
+        left, right = [], []
         for index in range(0 ,data.shape[1]-1): #just one loop since there's only one feature in this dataset
-            for index, row in enumerate(data):
-                left, right = self.one_step_split(index, row[0], data)
-                #if not left.any() or not right.any():
-                #    continue
-                print(left , "  ", right)
-                score = self.mean_squared_error(left, right)
-                if score < best_score:
-                    best_index, best_value, best_score = index, row[index], score
-        return Node(best_value, data={"threshold": best_value , "index": best_index , "mse": best_score, "left" : left, "right": right, "data": np.concatenate((left, right), axis=0)})
+            for index, row in enumerate(data): #loop through every row
+                left, right = self.one_step_split(index, row[0], data)  #split
+                if len(left) != 0  and len(right) != 0: #make sure it's not going all left or right becasue my MSE function crashes when one array is empty lol
+                    score = self.mean_squared_error(left, right)
+                    #check if MSE is lower
+                    if score < best_score:
+                        best_index, best_value, best_score, best_threshold = index, row[1], score, row[0]
+
+        return Node(best_value, data={"threshold": best_threshold , "index": best_index , "mse": best_score, "left" : left, "right": right, "data": np.concatenate((left, right), axis=0)})
 
     @typechecked
     def one_step_split(self, index: int, value: float, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -338,9 +335,12 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
-        dataset_left = np.array([row for row in data if data[index][0]<=value])
-        dataset_right = np.array([row for row in data if data[index][0] > value])
-        return dataset_left, dataset_right
+        #delete the index where we split
+        new_data = np.delete(data, index, axis=0)
+        #compare and split into left and right
+        left_split = new_data[new_data[:,0] < value]
+        right_split = new_data[new_data[:,0] >= value]
+        return left_split, right_split
 
 @typechecked
 def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
@@ -348,31 +348,37 @@ def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     Return True if node's value > row's value (of the variable)
     Else False
     """
- #   print(node.data, "\n\n\n")
- #   print(node.data["index"])
-    index = node.data["index"]
-    variable_value = row[index]
-    return bool(node.split_val > variable_value)
+    #i'm comparing the threshold to split with the feature of the row
+    variable_value = row[0]
+    return bool(node.data["threshold"] > variable_value)
 
 
 @typechecked
 def predict( node: Node, row: np.ndarray, comparator: Callable[[Node, np.ndarray], bool]) -> float:
-    """while node.left or node.right:
-        print(isinstance(comparator(node,row).astype(bool)), bool)
+    """    # Traverse the tree until we reach a leaf node
+    while node.left is not None or node.right is not None:
+        # Check if we should follow the left or right branch
         if comparator(node, row):
             node = node.left
         else:
             node = node.right
-
-    #return value at the leaf node
-    return node.split_val"""
+    # Return the value at the leaf node
+    return node.data["value"]
+    """
 
     if node.left is None and node.right is None:
         # leaf node
         return node.split_val
-
-    if (bool(comparator(node, row))):
+    #need to check if either right or left is empty and act accordingly 
+    if node.left is None and node.right is not None:  
+        return predict(node.right, row, comparator)
+    elif node.right is None and node.left is not None:
         return predict(node.left, row, comparator)
+    #has both right and left branches
+    #going left
+    elif (bool(comparator(node, row))):
+        return predict(node.left, row, comparator)
+    #traverse right
     else:
         return predict(node.right, row, comparator)
 
@@ -481,6 +487,7 @@ if __name__ == "__main__":
     for depth in range(1, 5):
         regressor = TreeRegressor(data_regress, depth)
         tree = regressor.build_tree()
+        print("in da loop rn: ", tree.data["threshold"])
         mse = 0.0
         for data_point in data_regress:
             mse += (data_point[1]- predict(tree, data_point, compare_node_with_threshold)) ** 2
