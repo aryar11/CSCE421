@@ -412,6 +412,7 @@ class TreeClassifier(TreeRegressor):
         """
         Select the best split point for a dataset
         """
+        print("WHAT TF")
         classes = list(set(row[-1] for row in data))
         best_index, best_value, best_score, best_groups = 999, 999, 999, None
         for index in range(len(data[0])-1):
@@ -487,7 +488,6 @@ if __name__ == "__main__":
     for depth in range(1, 5):
         regressor = TreeRegressor(data_regress, depth)
         tree = regressor.build_tree()
-        print("in da loop rn: ", tree.data["threshold"])
         mse = 0.0
         for data_point in data_regress:
             mse += (data_point[1]- predict(tree, data_point, compare_node_with_threshold)) ** 2
