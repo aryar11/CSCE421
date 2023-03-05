@@ -127,7 +127,6 @@ def train_lasso(
     aucs = {"lasso": []}
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
 
-
     for i in range(n):
         auc = []
         for alpha_val in lambda_vals:
@@ -288,18 +287,22 @@ class TreeRegressor:
         if len(data) == 0:
             return
 
-        # recur left
+        # recurse left
         node.left = self.get_best_split(node.data["left"])
         if node.left.split_val == 999: #this is to check if get_best_split actually found a best split.
             node.left = None
-            return
-        self.split(node.left, depth+1) #recurse left
-        # recur right
+        else:
+            node.split_val = node.data["threshold"]
+            self.split(node.left, depth+1) #recurse left
+
+    
+        # recurse right
         node.right = self.get_best_split(node.data["right"])
         if node.right.split_val == 999: #this is to check if get_best_split actually found a best split.
-            node.right = None
-            return
-        self.split(node.right, depth+1)  #recurse right
+            node.right = None  
+        else:
+            node.split_val = node.data["threshold"]
+            self.split(node.right, depth+1)  #recurse right
         return
 
 
@@ -311,14 +314,13 @@ class TreeRegressor:
         # target values: data_regress[:, 1]
         # featues: data_regress[:, 0]
 
-
         # loop over all the features
         #initialize values of the "best split"
         best_index, best_value, best_score, best_threshold = 999, 999, 999, 999
         left, right = [], []
         for index in range(0 ,data.shape[1]-1): #just one loop since there's only one feature in this dataset
-            for index, row in enumerate(data): #loop through every row
-                left, right = self.one_step_split(index, row[0], data)  #split
+            for i, row in enumerate(data): #loop through every row
+                left, right = self.one_step_split(i, row[0], data)  #split
                 if len(left) != 0  and len(right) != 0: #make sure it's not going all left or right becasue my MSE function crashes when one array is empty lol
                     score = self.mean_squared_error(left, right)
                     #check if MSE is lower
@@ -339,7 +341,7 @@ class TreeRegressor:
         new_data = np.delete(data, index, axis=0)
         #compare and split into left and right
         left_split = new_data[new_data[:,0] < value]
-        right_split = new_data[new_data[:,0] >= value]
+        right_split = new_data[new_data[:,0] > value]
         return left_split, right_split
 
 @typechecked
@@ -374,6 +376,7 @@ def predict( node: Node, row: np.ndarray, comparator: Callable[[Node, np.ndarray
         return predict(node.right, row, comparator)
     elif node.right is None and node.left is not None:
         return predict(node.left, row, comparator)
+    
     #has both right and left branches
     #going left
     elif (bool(comparator(node, row))):
@@ -391,7 +394,7 @@ class TreeClassifier(TreeRegressor):
         return self.root
 
     @typechecked
-    def gini_index(self,left_split: np.ndarray,right_split: np.ndarray,classes: List[float],) -> float:
+    def gini_index(self,left_split: np.ndarray,right_split: np.ndarray, classes: List[float],) -> float:
         """
         Calculate the Gini index for a split dataset
         Similar to MSE but Gini index instead
@@ -399,12 +402,12 @@ class TreeClassifier(TreeRegressor):
         n_instances = float(len(left_split) + len(right_split))
         gini = 0.0
         for class_val in classes:
-            left_class_count = [row[-1] for row in left_split].count(class_val)
+            left_class_count = len([row[-1] for row in left_split if row[-1] == class_val])
             left_class_prob = left_class_count / len(left_split) if len(left_split) > 0 else 0
-            right_class_count = [row[-1] for row in right_split].count(class_val)
+            right_class_count = len([row[-1] for row in right_split if row[-1] == class_val])
             right_class_prob = right_class_count / len(right_split) if len(right_split) > 0 else 0
-            weighted_prob = (left_class_prob + right_class_prob) * (left_class_count + right_class_count) / n_instances
-            gini += (weighted_prob * (1.0 - weighted_prob))
+            weighted_prob = (left_class_count + right_class_count) / n_instances
+            gini += weighted_prob * (1.0 - (left_class_prob ** 2 + right_class_prob ** 2))
         return gini
 
     @typechecked
@@ -412,23 +415,47 @@ class TreeClassifier(TreeRegressor):
         """
         Select the best split point for a dataset
         """
+        
         classes = list(set(row[-1] for row in data))
-        best_index, best_value, best_score, best_groups = 999, 999, 999, None
-        for index in range(len(data[0])-1):
+        best_index, best_threshold, best_gini, best_groups, best_split_val = 999, 999, 999, [], 0
+        if(len(data)== 0):
+            node = Node(best_threshold)
+            node.data = data={"threshold": best_threshold , "index": best_index , "gini": best_gini, "data" : best_groups}
+            return node
+        #print("start: \n", data, "\n done \n")
+        for index in range(len(data[0]) - 1):
             for row in data:
                 groups = self.one_step_split(index, row[index], data)
-                gini = self.gini_index(groups[0], groups[1], classes)
-                if gini < best_score:
-                    best_index, best_value, best_score, best_groups = index, row[index], gini, groups
-        node = Node(best_value)
-        node.data = data={"threshold": best_value , "index": best_index , "gini": best_score, "data" : best_groups}
+
+                if len(groups[0]) != 0  and len(groups[1]) != 0:
+                    gini = self.gini_index(groups[0], groups[1], classes)
+                    if gini < best_gini and gini >= 0:
+                        best_index, best_threshold, best_gini, best_groups, best_split_val = index, row[index], gini, groups, row[-1]
+        node = Node(best_split_val)
+        node.data = data={"threshold": best_threshold , "index": best_index , "gini": best_gini, "data" : best_groups, "left": groups[0], "right": groups[1]}
         return node
+    
+    @typechecked
+    def one_step_split(self, index: int, value: float, data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Split a dataset based on an attribute and an attribute value
+        index is the variable to be split on (left split < threshold)
+        returns the left and right split each as list
+        each list has elements as `rows' of the df
+        """
+        if len(data) == 0 :
+            return [],[]
+
+        #compare and split into left and right
+        left_split = data[data[:,index] < value] 
+        right_split = data[data[:,index] >= value]
+        return left_split, right_split
 
 
 
 if __name__ == "__main__":
     # Question 1
-    """    
+    
     filename = "hitters.csv"  # Provide the path of the dataset
     df = read_data(filename)
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
@@ -466,7 +493,7 @@ if __name__ == "__main__":
     plt.ylabel("TPR")
     plt.legend()
     plt.show()
-    """
+   
 
 
     # SUB Q1
@@ -487,7 +514,6 @@ if __name__ == "__main__":
     for depth in range(1, 5):
         regressor = TreeRegressor(data_regress, depth)
         tree = regressor.build_tree()
-        print("in da loop rn: ", tree.data["threshold"])
         mse = 0.0
         for data_point in data_regress:
             mse += (data_point[1]- predict(tree, data_point, compare_node_with_threshold)) ** 2
@@ -497,11 +523,12 @@ if __name__ == "__main__":
     plt.xlabel("Depth")
     plt.ylabel("MSE")
     plt.show()
-    
+     
     # SUB Q2
     csvname = "new_circle_data.csv"  # Place the CSV file in the same directory as this notebook
     data_class = np.loadtxt(csvname, delimiter=",")
     data_class = np.array([[x1, x2, y] for x1, x2, y in zip(*data_class)])
+    #print(data_class)
     plt.figure()
     plt.scatter(
         data_class[:, 0], data_class[:, 1], c=-data_class[:, 2], cmap="bwr"
