@@ -9,7 +9,7 @@ from sklearn.metrics import mean_absolute_error, log_loss
 import matplotlib.pyplot as plt
 import random
 from typeguard import typechecked
-
+from typing import Tuple
 
 random.seed(42)
 np.random.seed(42)
@@ -21,15 +21,19 @@ np.random.seed(42)
 ################
 
 @typechecked
-def read_classification_data(file_path:str) ->(np.array, np.array):
+def read_classification_data(file_path:str) ->Tuple[np.array, np.array]:
   '''
     Read the data from the path.
     Return the data as 2 np arrays each with shape (number_of_rows_in_dataframe, 1)
     Order (np.array from first row), (np.array from second row)
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  #Read data
+  data = np.genfromtxt(file_path, delimiter=',')
+
+  #Separate the rows
+  row1 = data[0, :].reshape(-1, 1)
+  row2 = data[1, :].reshape(-1, 1)
+  return row1, row2
   
 
 @typechecked
@@ -38,9 +42,7 @@ def sigmoid(s:np.array) -> np.array:
     Return the sigmoid of every number in the array s as an array of floating point numbers
     sigmoid(s)= 1/(1+e^(-s))
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  return 1 / (1 + np.exp(-s))
 
 @typechecked
 def cost_function(w:float, b:float, X:np.array, y:np.array) -> float:
@@ -243,7 +245,7 @@ if __name__ == "__main__":
   '''
   ########################
   ## Your Solution Here ##
-  classification_data_2d_path=""
+  classification_data_2d_path="2d_classification_data_entropy.csv"
   ########################
   x,y= read_classification_data(classification_data_2d_path)
 
