@@ -153,8 +153,8 @@ def labels_to_binary(y : pd.DataFrame) -> pd.DataFrame:
   ## Your Solution Here ##
   ########################
   for i in range(1,6):
-    y["Class"] = y["Class"].replace(i, 0 )
-  y["Class"]= y["Class"].replace(6,1)
+    y["Class"].replace(i, 0 , inplace=True)
+  y["Class"].replace(6,1, inplace=True)
   return y
 
 ################
@@ -169,13 +169,14 @@ def cross_validate_c_vals(X : pd.DataFrame, y : pd.DataFrame, n_folds: int, c_va
     Return the matrices (ERRAVGdc, ERRSTDdc) in the same order
     More details about the imlementation are provided in the main function
   '''
+  print(y.head)
   ERRAVGdc = np.zeros((len(c_vals), len(d_vals)))
   ERRSTDdc = np.zeros((len(c_vals), len(d_vals)))
   for i, c in enumerate(c_vals):
       for j, d in enumerate(d_vals):
           kf = StratifiedKFold(n_splits=n_folds)
           fold_errors = []
-          for train_index, test_index in kf.split(X,y):
+          for train_index, test_index in kf.split(X,y["Class"].values.ravel()):
               X_train, X_test = X.iloc[train_index], X.iloc[test_index]
               y_train, y_test = y.iloc[train_index], y.iloc[test_index]
               clf = SVC(kernel='poly', degree=d, C=c, gamma='scale')
