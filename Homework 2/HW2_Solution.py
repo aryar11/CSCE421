@@ -11,7 +11,6 @@ from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import f1_score
-from sklearn import metrics
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
@@ -94,7 +93,7 @@ def build_model(train_X: np.array, train_y: np.array):
         using training data and return the model object
     '''
     X_train = np.expand_dims(train_X, -1)
-    X_test = np.expand_dims(X_test, -1)
+    #X_test = np.expand_dims(X_test, -1)
     model = LinearRegression_Local(0.0001, 30) #Instantiate the model object based on the LinearRegression class we wrote in the previous step
     model.fit(X_train, train_y) #train/fit the model to the training data
     return model
@@ -352,8 +351,8 @@ if __name__ == "__main__":
     ## Q1
     ################
     ################
-    data_path_train   = "/autograder/source/train.csv"
-    data_path_test    = "/autograder/source/test.csv"
+    data_path_train   = "train.csv"
+    data_path_test    = "test.csv"
     df_train = read_data(data_path_train)
     df_test = read_data(data_path_test)
 

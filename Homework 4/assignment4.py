@@ -54,12 +54,18 @@ def cost_function(w:float, b:float, X:np.array, y:np.array) -> float:
     y : target with shape (number_of_rows_in_dataframe, 1)
   Return the loss as a float data type. 
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  #   compute the predictions
+  z = np.dot(X, w) + b
+  y_pred = sigmoid(z)
+
+  #get the cross-entropy loss
+  loss = -np.sum(y * np.log(y_pred) + (1 - y) * np.log(1 - y_pred)) 
+  return loss
+
+  
 
 @typechecked
-def cross_entropy_optimizer(w:float, b:float, X:np.array, y:np.array, num_iterations:int, alpha:float) -> (float, float, list):
+def cross_entropy_optimizer(w:float, b:float, X:np.array, y:np.array, num_iterations:int, alpha:float) -> Tuple[float, float, list]:
   '''
     Inputs definitions:
       w              : initial weight
@@ -77,9 +83,29 @@ def cross_entropy_optimizer(w:float, b:float, X:np.array, y:np.array, num_iterat
     Return (updated weight, updated bias, list of "costs" after each iteration) in this order
     "costs" list contains float type numbers  
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  costs = []  # list to store the loss after each iteration
+
+  # Iterate over the specified number of iterations
+  for i in range(num_iterations):
+      # Compute the predicted probabilities and loss for the current parameters
+      z = np.dot(X, w) + b
+      y_pred = sigmoid(z)
+      
+      loss = cost_function(w, b, X, y)
+      costs.append(loss)
+
+      # Compute the gradients of the loss with respect to the parameters
+      dw = np.dot(X.T, y_pred - y) / len(X)
+      db = np.sum(y_pred - y) / len(X)
+
+      # Update the parameters using gradient descent
+      w -= alpha * dw
+      b -= alpha * db
+      w = w.item()
+      b = b.item()
+
+  return w, b, costs
+    
 
 ################
 ################
