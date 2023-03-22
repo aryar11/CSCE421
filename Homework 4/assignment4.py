@@ -119,21 +119,17 @@ def read_sat_image_data(file_path:str) -> pd.DataFrame:
     Input: filepath to a .csv file
     Output: Return a DataFrame with the data from the given csv file 
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  return pd.read_csv(file_path)
 
 @typechecked
 def remove_nan(df : pd.DataFrame) -> pd.DataFrame:
   '''
     Remove nan values from the dataframe and return it
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  return df.dropna()
 
 @typechecked
-def normalize_data(Xtrain : pd.DataFrame, Xtest : pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
+def normalize_data(Xtrain : pd.DataFrame, Xtest : pd.DataFrame) -> Tuple [pd.DataFrame, pd.DataFrame]:
   '''
     Normalize each column of the dataframes and Return the dataframes
     Use sklearn.preprocessing.StandardScaler library to normalize
@@ -142,6 +138,10 @@ def normalize_data(Xtrain : pd.DataFrame, Xtest : pd.DataFrame) -> (pd.DataFrame
   ########################
   ## Your Solution Here ##
   ########################
+  scaler = StandardScaler()
+  Xtrain_norm = scaler.fit_transform(Xtrain)
+  Xtest_norm = scaler.transform(Xtest)
+  return pd.DataFrame(Xtrain_norm, columns=Xtrain.columns), pd.DataFrame(Xtest_norm, columns=Xtest.columns)
 
 @typechecked
 def labels_to_binary(y : pd.DataFrame) -> pd.DataFrame:
@@ -152,7 +152,10 @@ def labels_to_binary(y : pd.DataFrame) -> pd.DataFrame:
   ########################
   ## Your Solution Here ##
   ########################
-
+  for i in range(1,6):
+    y["Class"] = y["Class"].replace(i, 0 )
+  y["Class"]= y["Class"].replace(6,1)
+  return y
 
 ################
 ################
@@ -161,14 +164,28 @@ def labels_to_binary(y : pd.DataFrame) -> pd.DataFrame:
 ################
 
 @typechecked
-def cross_validate_c_vals(X : pd.DataFrame, y : pd.DataFrame, n_folds: int, c_vals : np.array, d_vals: np.array) -> (np.array, np.array):
+def cross_validate_c_vals(X : pd.DataFrame, y : pd.DataFrame, n_folds: int, c_vals : np.array, d_vals: np.array) -> Tuple[np.array, np.array]:
   '''
     Return the matrices (ERRAVGdc, ERRSTDdc) in the same order
     More details about the imlementation are provided in the main function
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  ERRAVGdc = np.zeros((len(c_vals), len(d_vals)))
+  ERRSTDdc = np.zeros((len(c_vals), len(d_vals)))
+  for i, c in enumerate(c_vals):
+      for j, d in enumerate(d_vals):
+          kf = StratifiedKFold(n_splits=n_folds)
+          fold_errors = []
+          for train_index, test_index in kf.split(X,y):
+              X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+              y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+              clf = SVC(kernel='poly', degree=d, C=c, gamma='scale')
+              clf.fit(X_train, y_train)
+              y_pred = clf.predict(X_test)
+              fold_errors.append(mean_absolute_error(y_test, y_pred))
+          ERRAVGdc[i][j] = np.mean(fold_errors)
+          ERRSTDdc[i][j] = np.std(fold_errors)
+  return ERRAVGdc, ERRSTDdc
+  
 
 @typechecked
 def plot_cross_val_err_vs_c(ERRAVGdc: np.array, ERRSTDdc: np.array, c_vals: np.array, d_vals: np.array) ->None:
@@ -176,9 +193,16 @@ def plot_cross_val_err_vs_c(ERRAVGdc: np.array, ERRSTDdc: np.array, c_vals: np.a
    Please write the code in below block to generate the graphs as described in the question.
    Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  fig, axs = plt.subplots(len(d_vals), 1, figsize=(8, 8))
+  fig.suptitle('Cross-validation error vs. C for different degree values')
+  for j, d in enumerate(d_vals):
+      axs[j].errorbar(c_vals, ERRAVGdc[:,j], yerr=ERRSTDdc[:,j], fmt='o-', capsize=4)
+      axs[j].set_xscale('log')
+      axs[j].set_xlabel('C')
+      axs[j].set_ylabel('Mean Absolute Error')
+      axs[j].set_title(f'degree={d}')
+  plt.tight_layout()
+  plt.show()
 
 ################
 ################
@@ -186,7 +210,7 @@ def plot_cross_val_err_vs_c(ERRAVGdc: np.array, ERRSTDdc: np.array, c_vals: np.a
 ################
 ################
 @typechecked
-def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : pd.DataFrame, y_test : pd.DataFrame, n_folds : int, c_vals : np.array, d_vals: np.array) ->(np.array, np.array, np.array, np.array):
+def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : pd.DataFrame, y_test : pd.DataFrame, n_folds : int, c_vals : np.array, d_vals: np.array) ->Tuple[np.array, np.array, np.array, np.array]:
   '''
     Return in the order: ERRAVGdcTEST, SuppVect, vmd, MarginT
     More details about the imlementation are provided in the main function
@@ -304,8 +328,8 @@ if __name__ == "__main__":
   '''
   ########################
   ## Your Solution Here ##
-  sat_image_Training_path = ""
-  sat_image_Test_path     = ""
+  sat_image_Training_path = "satimageTraining.csv"
+  sat_image_Test_path     = "satimageTest.csv"
   ########################
 
   train_df = read_sat_image_data(sat_image_Training_path)#Training set
