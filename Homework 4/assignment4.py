@@ -169,7 +169,6 @@ def cross_validate_c_vals(X : pd.DataFrame, y : pd.DataFrame, n_folds: int, c_va
     Return the matrices (ERRAVGdc, ERRSTDdc) in the same order
     More details about the imlementation are provided in the main function
   '''
-  print(y.head)
   ERRAVGdc = np.zeros((len(c_vals), len(d_vals)))
   ERRSTDdc = np.zeros((len(c_vals), len(d_vals)))
   for i, c in enumerate(c_vals):
@@ -221,9 +220,36 @@ def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : 
       vmd          = np array with shape len(d_vals)
       MarginT      = np array with shape len(d_vals)
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  
+  ERRAVGdcTEST = np.zeros(len(d_vals))
+  SuppVect = np.zeros(len(d_vals))
+  vmd = np.zeros(len(d_vals))
+  MarginT = np.zeros(len(d_vals))
+
+  for j, d in enumerate(d_vals):
+      best_c = c_vals[j]
+      clf = SVC(kernel='linear', degree=d, C=best_c)
+      clf.fit(X_train, y_train)
+      y_pred = clf.predict(X_test)
+      supp_vect_count = np.sum(clf.n_support_)
+      vmd_val = (1/2) * np.sum(clf.coef_**2) + clf.intercept_
+      margin_t = 1 / np.linalg.norm(clf.coef_)
+
+      ERRAVGdc = np.zeros(n_folds)
+      for i, (train_index, val_index) in enumerate(StratifiedKFold(n_splits=n_folds).split(X_train, y_train)):
+          X_train_kf, X_val = X_train.iloc[train_index], X_train.iloc[val_index]
+          y_train_kf, y_val = y_train.iloc[train_index], y_train.iloc[val_index]
+          clf = SVC(kernel='poly', degree=d, C=best_c, gamma='scale')
+          clf.fit(X_train_kf, y_train_kf)
+          y_val_pred = clf.predict(X_val)
+          ERRAVGdc[i] = mean_absolute_error(y_val, y_val_pred)
+      ERRAVGdcTEST[j] = np.mean(ERRAVGdc)
+      SuppVect[j] = supp_vect_count
+      vmd[j] = vmd_val
+      MarginT[j] = margin_t
+
+  return ERRAVGdcTEST, SuppVect, vmd, MarginT
+
 
 @typechecked
 def plot_test_errors(ERRAVGdcTEST : np.array, d_vals : np.array) -> None:
@@ -231,9 +257,11 @@ def plot_test_errors(ERRAVGdcTEST : np.array, d_vals : np.array) -> None:
    Please write the code in below block to generate the graphs as described in the question.
    Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  plt.plot(d_vals, ERRAVGdcTEST, 'o-')
+  plt.xlabel('Degree of polynomial kernel')
+  plt.ylabel('Test error')
+  plt.title('Test error vs. Degree of polynomial kernel')
+  plt.show()
 
 ################
 ################
@@ -408,6 +436,10 @@ if __name__ == "__main__":
   ########################
   ## Your Solution Here ##
   new_c_vals = []
+  for d in d_vals:
+    best_idx = np.argmin(ERRAVGdc[:, d-1])
+    new_c_vals.append(c_vals[best_idx])
+    print(f"Best c value for d={d} is {new_c_vals[-1]}")
   ########################
 
   '''
