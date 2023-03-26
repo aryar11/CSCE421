@@ -169,15 +169,43 @@ def cross_validate_c_vals(X : pd.DataFrame, y : pd.DataFrame, n_folds: int, c_va
     Return the matrices (ERRAVGdc, ERRSTDdc) in the same order
     More details about the imlementation are provided in the main function
   '''
+
+  '''
+    ERRAVGdc is a matrix with ERRAVGdc[c][d] = "Average Mean Absolute Error" of 10 folds for 'C'=c and degree='d'
+    ERRSTDdc is a matrix with ERRSTDdc[c][d] = "Standard Deviation" of 10 folds for 'C'=c and degree='d'
+    Both the matrices have size (len(c_vals), len(d_vals))
+    Fill these matrices in the cross_validate_c_vals function
+    For each 'c' and 'd' values :
+      Split the data into 10 folds and for each fold:
+          Find the predictions and corresponding mean Absolute errors and store the error
+      Evaluate the "Average Mean Absolute Error" and "Standard Deviation" from stored errors
+      Update the ERRAVGdc[c][d], ERRSTDdc[c][d] with the evaluated "Average Mean Absolute Error" and "Standard Deviation"
+        
+    Note: 'C' is the trade-off constant, which controls the trade-off between a smooth decision boundary and classifying the training points correctly.
+    Note: 'degree' is the degree of the polynomial kernel used with the SVM
+     Matrices ERRAVGdc, ERRSTDdc look like this:
+              d=1   d=2   d=3   d=4
+    --------- ---   ---   ---   --- 
+    c=0.01 | .     .     .     .
+    c=0.1  | .     .     .     .
+    c=1    | .     .     .     .
+    c=10   | .     .     .     .
+    c=100  | .     .     .     .
+
+    Implement- cross_validate_c_vals(), plot_cross_val_err_vs_c()
+  '''
   ERRAVGdc = np.zeros((len(c_vals), len(d_vals)))
   ERRSTDdc = np.zeros((len(c_vals), len(d_vals)))
+
+  y_length = y.shape[0]
+  y = y.to_numpy().reshape((y_length,))
   for i, c in enumerate(c_vals):
       for j, d in enumerate(d_vals):
           kf = StratifiedKFold(n_splits=n_folds)
           fold_errors = []
-          for train_index, test_index in kf.split(X,y["Class"].values.ravel()):
+          for train_index, test_index in kf.split(X,y):
               X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-              y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+              y_train, y_test = y[train_index], y[test_index]
               clf = SVC(kernel='poly', degree=d, C=c, gamma='scale')
               clf.fit(X_train, y_train)
               y_pred = clf.predict(X_test)
@@ -212,19 +240,31 @@ def plot_cross_val_err_vs_c(ERRAVGdc: np.array, ERRSTDdc: np.array, c_vals: np.a
 @typechecked
 def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : pd.DataFrame, y_test : pd.DataFrame, n_folds : int, c_vals : np.array, d_vals: np.array) ->Tuple[np.array, np.array, np.array, np.array]:
   '''
-    Return in the order: ERRAVGdcTEST, SuppVect, vmd, MarginT
-    More details about the imlementation are provided in the main function
-    Shape:
-      ERRAVGdcTEST = np array with shape len(d_vals)
-      SuppVect     = np array with shape len(d_vals)
-      vmd          = np array with shape len(d_vals)
-      MarginT      = np array with shape len(d_vals)
+  Return in the order: ERRAVGdcTEST, SuppVect, vmd, MarginT
+  More details about the implementation are provided in the main function
+  Shape:
+    ERRAVGdcTEST = np array with shape len(d_vals)
+    SuppVect     = np array with shape len(d_vals)
+    vmd          = np array with shape len(d_vals)
+    MarginT      = np array with shape len(d_vals)
   '''
-  
+
+  '''
+  Below are the vectors evaluated by evaluate_c_d_pairs() function
+    ERRAVGdcTEST - Average Testing error for each value of 'd'
+    SuppVect     - Average Number of Support Vectors for each value of 'd'
+    vmd          - Average Number of Support Vectors that Violate the Margin for each value of 'd'
+    MarginT      - Average Value of Hyperplane Margins for each value of 'd'
+  Implement- evaluate_c_d_pairs(), plot_test_errors, plot_avg_support_vec(), plot_avg_violating_support_vec(), plot_avg_hyperplane_margins()
+  '''
+
   ERRAVGdcTEST = np.zeros(len(d_vals))
   SuppVect = np.zeros(len(d_vals))
   vmd = np.zeros(len(d_vals))
   MarginT = np.zeros(len(d_vals))
+
+  y_train = y_train.to_numpy().ravel()
+  y_test = y_test.to_numpy().ravel()
 
   for j, d in enumerate(d_vals):
       best_c = c_vals[j]
@@ -238,7 +278,63 @@ def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : 
       ERRAVGdc = np.zeros(n_folds)
       for i, (train_index, val_index) in enumerate(StratifiedKFold(n_splits=n_folds).split(X_train, y_train)):
           X_train_kf, X_val = X_train.iloc[train_index], X_train.iloc[val_index]
-          y_train_kf, y_val = y_train.iloc[train_index], y_train.iloc[val_index]
+          y_train_kf, y_val = y_train[train_index], y_train[val_index]
+          clf = SVC(kernel='poly', degree=d, C=best_c, gamma='scale')
+          clf.fit(X_train_kf, y_train_kf)
+          y_val_pred = clf.predict(X_val)
+          ERRAVGdc[i] = mean_absolute_error(y_val, y_val_pred)
+
+      ERRAVGdcTEST[j] = mean_absolute_error(y_test, y_pred)
+      SuppVect[j] = supp_vect_count
+      vmd[j] = vmd_val
+      MarginT[j] = margin_t
+
+  return ERRAVGdcTEST, SuppVect, vmd, MarginT
+
+
+
+
+  '''
+    Return in the order: ERRAVGdcTEST, SuppVect, vmd, MarginT
+    More details about the imlementation are provided in the main function
+    Shape:
+      ERRAVGdcTEST = np array with shape len(d_vals)
+      SuppVect     = np array with shape len(d_vals)
+      vmd          = np array with shape len(d_vals)
+      MarginT      = np array with shape len(d_vals)
+  '''
+
+  '''
+  Below are the vectors evaluated by evaluate_c_d_pairs() function
+    ERRAVGdcTEST - Average Testing error for each value of 'd'
+    SuppVect     - Average Number of Support Vectors for each value of 'd'
+    vmd          - Average Number of Support Vectors that Violate the Margin for each value of 'd'
+    MarginT      - Average Value of Hyperplane Margins for each value of 'd'
+  Implement- evaluate_c_d_pairs(), plot_test_errors, plot_avg_support_vec(), plot_avg_violating_support_vec(), plot_avg_hyperplane_margins()
+    
+  ERRAVGdcTEST = np.zeros(len(d_vals))
+  SuppVect = np.zeros(len(d_vals))
+  vmd = np.zeros(len(d_vals))
+  MarginT = np.zeros(len(d_vals))
+
+  y_length = y_train.shape[0]
+  y_train = y_train.to_numpy().reshape((y_length,))
+
+
+  for j, d in enumerate(d_vals):
+      best_c = c_vals[j]
+      clf = SVC(kernel='linear', degree=d, C=best_c)
+      clf.fit(X_train, y_train)
+      y_pred = clf.predict(X_test)
+      supp_vect_count = np.sum(clf.n_support_)
+      vmd_val = (1/2) * np.sum(clf.coef_**2) + clf.intercept_
+      margin_t = 1 / np.linalg.norm(clf.coef_)
+
+      ERRAVGdc = np.zeros(n_folds)
+      for i, (train_index, val_index) in enumerate(StratifiedKFold(n_splits=n_folds).split(X_train, y_train)):
+          X_train_kf, X_val = X_train.iloc[train_index], X_train.iloc[val_index]
+          #y_train_kf, y_val = y_train.iloc[train_index], y_train.iloc[val_index]
+          y_train_kf, y_val = y_train[train_index], y_train[val_index]
           clf = SVC(kernel='poly', degree=d, C=best_c, gamma='scale')
           clf.fit(X_train_kf, y_train_kf)
           y_val_pred = clf.predict(X_val)
@@ -247,9 +343,9 @@ def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : 
       SuppVect[j] = supp_vect_count
       vmd[j] = vmd_val
       MarginT[j] = margin_t
-
+  
   return ERRAVGdcTEST, SuppVect, vmd, MarginT
-
+  '''
 
 @typechecked
 def plot_test_errors(ERRAVGdcTEST : np.array, d_vals : np.array) -> None:
@@ -274,9 +370,11 @@ def plot_avg_support_vec(SuppVect : np.array, d_vals : np.array) ->None:
    Please write the code in below block to generate the graphs as described in the question.
    Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  plt.plot(d_vals, SuppVect, 'o-')
+  plt.xlabel('Degree of polynomial kernel')
+  plt.ylabel('Avg Support Vectors')
+  plt.title('Avg Support Vectors vs. Degree of polynomial kernel')
+  plt.show()  
 
 @typechecked
 def plot_avg_violating_support_vec(vmd : np.array, d_vals : np.array) ->None:
@@ -284,9 +382,11 @@ def plot_avg_violating_support_vec(vmd : np.array, d_vals : np.array) ->None:
    Please write the code in below block to generate the graphs as described in the question.
    Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  plt.plot(d_vals, vmd, 'o-')
+  plt.xlabel('Degree of polynomial kernel')
+  plt.ylabel('Avg # of Support Vectors that violate margin')
+  plt.title('Avg # of Support Vectors that violate margin vs. Degree of polynomial kernel')
+  plt.show()  
 
 ################
 ################
@@ -299,9 +399,11 @@ def plot_avg_hyperplane_margins(MarginT : np.array, d_vals : np.array) ->None:
    Please write the code in below block to generate the graphs as described in the question.
    Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+  plt.plot(d_vals, MarginT, 'o-')
+  plt.xlabel('Degree of polynomial kernel')
+  plt.ylabel('HyperPlane Margins')
+  plt.title('HyperPlane Margins vs. Degree of polynomial kernel')
+  plt.show()  
 
 if __name__ == "__main__":
   '''
@@ -322,6 +424,7 @@ if __name__ == "__main__":
     Provide the path for data.
     Implement- read_classification_data()
   '''
+  
   ########################
   ## Your Solution Here ##
   classification_data_2d_path="2d_classification_data_entropy.csv"
@@ -334,6 +437,8 @@ if __name__ == "__main__":
     Please submit a screenshot of the plot in the report to receive points. 
     Implement- sigmoid(), cost_function(), cross_entropy_optimizer()
   '''
+
+  '''
   w = 1
   b = 1
   num_iterations = 300
@@ -342,7 +447,7 @@ if __name__ == "__main__":
   print("Bias b: ", b)
   plt.plot(range(num_iterations),costs)
   plt.show()
-
+  '''
   ################
   ################
   ## Q3 a
