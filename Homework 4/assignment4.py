@@ -438,7 +438,7 @@ if __name__ == "__main__":
     Implement- sigmoid(), cost_function(), cross_entropy_optimizer()
   '''
 
-  '''
+  
   w = 1
   b = 1
   num_iterations = 300
@@ -447,7 +447,7 @@ if __name__ == "__main__":
   print("Bias b: ", b)
   plt.plot(range(num_iterations),costs)
   plt.show()
-  '''
+  
   ################
   ################
   ## Q3 a
