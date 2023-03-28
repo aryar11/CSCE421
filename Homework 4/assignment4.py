@@ -83,22 +83,21 @@ def cross_entropy_optimizer(w:float, b:float, X:np.array, y:np.array, num_iterat
     Return (updated weight, updated bias, list of "costs" after each iteration) in this order
     "costs" list contains float type numbers  
   '''
-  costs = []  # list to store the loss after each iteration
+  costs = []  #store the loss after each iteration
 
-  # Iterate over the specified number of iterations
   for i in range(num_iterations):
-      # Compute the predicted probabilities and loss for the current parameters
+      #compute the predicted probabilities and loss
       z = np.dot(X, w) + b
       y_pred = sigmoid(z)
       
       loss = cost_function(w, b, X, y)
       costs.append(loss)
 
-      # Compute the gradients of the loss with respect to the parameters
+      #gradients
       dw = np.dot(X.T, y_pred - y) / len(X)
       db = np.sum(y_pred - y) / len(X)
 
-      # Update the parameters using gradient descent
+      #update the parameters
       w -= alpha * dw
       b -= alpha * db
       w = w.item()
@@ -135,9 +134,7 @@ def normalize_data(Xtrain : pd.DataFrame, Xtest : pd.DataFrame) -> Tuple [pd.Dat
     Use sklearn.preprocessing.StandardScaler library to normalize
     Return the results in the order Xtrain_norm, Xtest_norm
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
+
   scaler = StandardScaler()
   Xtrain_norm = scaler.fit_transform(Xtrain)
   Xtest_norm = scaler.transform(Xtest)
@@ -149,9 +146,6 @@ def labels_to_binary(y : pd.DataFrame) -> pd.DataFrame:
   Make the lables [1,2,3,4,5] as 0 and [6] as 1
   Return the DataFrame 
   '''
-  ########################
-  ## Your Solution Here ##
-  ########################
   for i in range(1,6):
     y["Class"].replace(i, 0 , inplace=True)
   y["Class"].replace(6,1, inplace=True)
