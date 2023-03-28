@@ -251,7 +251,7 @@ def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : 
     MarginT      - Average Value of Hyperplane Margins for each value of 'd'
   Implement- evaluate_c_d_pairs(), plot_test_errors, plot_avg_support_vec(), plot_avg_violating_support_vec(), plot_avg_hyperplane_margins()
   '''
-
+  """
   ERRAVGdcTEST = np.zeros(len(d_vals))
   SuppVect = np.zeros(len(d_vals))
   vmd = np.zeros(len(d_vals))
@@ -284,62 +284,64 @@ def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : 
       MarginT[j] = margin_t
 
   return ERRAVGdcTEST, SuppVect, vmd, MarginT
-
-
-
-
-  '''
-    Return in the order: ERRAVGdcTEST, SuppVect, vmd, MarginT
-    More details about the imlementation are provided in the main function
-    Shape:
-      ERRAVGdcTEST = np array with shape len(d_vals)
-      SuppVect     = np array with shape len(d_vals)
-      vmd          = np array with shape len(d_vals)
-      MarginT      = np array with shape len(d_vals)
-  '''
-
-  '''
-  Below are the vectors evaluated by evaluate_c_d_pairs() function
-    ERRAVGdcTEST - Average Testing error for each value of 'd'
-    SuppVect     - Average Number of Support Vectors for each value of 'd'
-    vmd          - Average Number of Support Vectors that Violate the Margin for each value of 'd'
-    MarginT      - Average Value of Hyperplane Margins for each value of 'd'
-  Implement- evaluate_c_d_pairs(), plot_test_errors, plot_avg_support_vec(), plot_avg_violating_support_vec(), plot_avg_hyperplane_margins()
-    
+  """
+  # Create empty arrays to hold the results
   ERRAVGdcTEST = np.zeros(len(d_vals))
   SuppVect = np.zeros(len(d_vals))
   vmd = np.zeros(len(d_vals))
   MarginT = np.zeros(len(d_vals))
-
+  avg_violating_support_vec = np.zeros(len(d_vals))
+  # Convert y_train to a numpy array and reshape it
   y_length = y_train.shape[0]
   y_train = y_train.to_numpy().reshape((y_length,))
 
-
+  # Loop over each value of d
   for j, d in enumerate(d_vals):
+      # Get the best value of c for this value of d
       best_c = c_vals[j]
+
+      # Fit an SVM model with the current values of c and d
       clf = SVC(kernel='linear', degree=d, C=best_c)
       clf.fit(X_train, y_train)
+
+      # Predict the test set labels using the trained SVM model
       y_pred = clf.predict(X_test)
+
+      # Compute the number of support vectors, the number of support vectors violating the margin, and the margin
       supp_vect_count = np.sum(clf.n_support_)
-      vmd_val = (1/2) * np.sum(clf.coef_**2) + clf.intercept_
+      vmd_val = (1 / 2) * np.sum(clf.coef_ ** 2) + clf.intercept_
       margin_t = 1 / np.linalg.norm(clf.coef_)
 
+      # Compute the average test error for this value of d using n_folds-fold cross validation
       ERRAVGdc = np.zeros(n_folds)
+      n_violating_support_vec = np.zeros(n_folds)
       for i, (train_index, val_index) in enumerate(StratifiedKFold(n_splits=n_folds).split(X_train, y_train)):
           X_train_kf, X_val = X_train.iloc[train_index], X_train.iloc[val_index]
-          #y_train_kf, y_val = y_train.iloc[train_index], y_train.iloc[val_index]
           y_train_kf, y_val = y_train[train_index], y_train[val_index]
           clf = SVC(kernel='poly', degree=d, C=best_c, gamma='scale')
           clf.fit(X_train_kf, y_train_kf)
           y_val_pred = clf.predict(X_val)
           ERRAVGdc[i] = mean_absolute_error(y_val, y_val_pred)
+         # Get number of support vectors on each side of the margin
+          n_correct_side = np.sum(np.abs(clf.decision_function(X_val)) <= 1)
+          n_wrong_side = clf.n_support_.sum() - n_correct_side
+          # Calculate number of support vectors that violate the margin
+          n_violating = n_wrong_side - (clf.n_support_ / 2)
+          
+          # Store result for this fold
+          n_violating_support_vec[i] = n_violating
+        
       ERRAVGdcTEST[j] = np.mean(ERRAVGdc)
+
+      # Save the results for this value of d
       SuppVect[j] = supp_vect_count
       vmd[j] = vmd_val
       MarginT[j] = margin_t
-  
-  return ERRAVGdcTEST, SuppVect, vmd, MarginT
-  '''
+      # Calculate average across folds and store result
+      avg_violating_support_vec[j] += np.mean(n_violating_support_vec)
+  avg_violating_support_vec[j] /= len(c_vals)
+  # Return the results as a tuple
+  return ERRAVGdcTEST, SuppVect, avg_violating_support_vec, MarginT
 
 @typechecked
 def plot_test_errors(ERRAVGdcTEST : np.array, d_vals : np.array) -> None:
