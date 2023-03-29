@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import normalize, StandardScaler
+from sklearn.preprocessing import PolynomialFeatures, normalize, StandardScaler
 from sklearn.svm import SVC
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.metrics import mean_absolute_error, log_loss
 import matplotlib.pyplot as plt
 import random
@@ -285,63 +285,59 @@ def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : 
 
   return ERRAVGdcTEST, SuppVect, vmd, MarginT
   """
-  # Create empty arrays to hold the results
-  ERRAVGdcTEST = np.zeros(len(d_vals))
-  SuppVect = np.zeros(len(d_vals))
-  vmd = np.zeros(len(d_vals))
-  MarginT = np.zeros(len(d_vals))
-  avg_violating_support_vec = np.zeros(len(d_vals))
-  # Convert y_train to a numpy array and reshape it
-  y_length = y_train.shape[0]
-  y_train = y_train.to_numpy().reshape((y_length,))
+  # Create arrays to store results for each C and D value
+  ERR = np.zeros((n_folds, len(c_vals), len(d_vals)))
+  SuppVect = np.zeros((len(c_vals), len(d_vals)))
+  vmd = np.zeros((len(c_vals), len(d_vals)))
+  MarginT = np.zeros((len(c_vals), len(d_vals)))
 
-  # Loop over each value of d
-  for j, d in enumerate(d_vals):
-      # Get the best value of c for this value of d
-      best_c = c_vals[j]
+  # Set up K-fold cross-validation
+  kf = KFold(n_splits=n_folds)
 
-      # Fit an SVM model with the current values of c and d
-      clf = SVC(kernel='linear', degree=d, C=best_c)
-      clf.fit(X_train, y_train)
+  # Loop through each degree of polynomial function (D value)
+  for j in range(len(d_vals)):
+      d = d_vals[j]
+      X = PolynomialFeatures(X_train, d)
 
-      # Predict the test set labels using the trained SVM model
-      y_pred = clf.predict(X_test)
+      # Loop through each regularization parameter (C value)
+      for i in range(len(c_vals)):
+          c = c_vals[i]
+          err = []
+          n_support_vectors = []
+          n_violating_vectors = []
+          margins = []
 
-      # Compute the number of support vectors, the number of support vectors violating the margin, and the margin
-      supp_vect_count = np.sum(clf.n_support_)
-      vmd_val = (1 / 2) * np.sum(clf.coef_ ** 2) + clf.intercept_
-      margin_t = 1 / np.linalg.norm(clf.coef_)
+          # Loop through each fold of the cross-validation
+          for train_index, val_index in kf.split(X_train):
+              X_train_fold, X_val_fold = X_train.iloc[train_index], X_train.iloc[val_index]
+              y_train_fold, y_val_fold = y_train.iloc[train_index], y_train.iloc[val_index]
 
-      # Compute the average test error for this value of d using n_folds-fold cross validation
-      ERRAVGdc = np.zeros(n_folds)
-      n_violating_support_vec = np.zeros(n_folds)
-      for i, (train_index, val_index) in enumerate(StratifiedKFold(n_splits=n_folds).split(X_train, y_train)):
-          X_train_kf, X_val = X_train.iloc[train_index], X_train.iloc[val_index]
-          y_train_kf, y_val = y_train[train_index], y_train[val_index]
-          clf = SVC(kernel='poly', degree=d, C=best_c, gamma='scale')
-          clf.fit(X_train_kf, y_train_kf)
-          y_val_pred = clf.predict(X_val)
-          ERRAVGdc[i] = mean_absolute_error(y_val, y_val_pred)
-         # Get number of support vectors on each side of the margin
-          n_correct_side = np.sum(np.abs(clf.decision_function(X_val)) <= 1)
-          n_wrong_side = clf.n_support_.sum() - n_correct_side
-          # Calculate number of support vectors that violate the margin
-          n_violating = n_wrong_side - (clf.n_support_ / 2)
-          
-          # Store result for this fold
-          n_violating_support_vec[i] = n_violating
-        
-      ERRAVGdcTEST[j] = np.mean(ERRAVGdc)
+              # Train the SVM model with the current C and D values
+              clf = SVC(kernel='poly', C=c, degree=d)
+              clf.fit(X_train_fold, y_train_fold.values.ravel())
 
-      # Save the results for this value of d
-      SuppVect[j] = supp_vect_count
-      vmd[j] = vmd_val
-      MarginT[j] = margin_t
-      # Calculate average across folds and store result
-      avg_violating_support_vec[j] += np.mean(n_violating_support_vec)
-  avg_violating_support_vec[j] /= len(c_vals)
-  # Return the results as a tuple
-  return ERRAVGdcTEST, SuppVect, avg_violating_support_vec, MarginT
+              # Predict on the validation set and calculate the mean squared error
+              y_pred = clf.predict(X_val_fold)
+              err.append(mean_absolute_error(y_val_fold, y_pred))
+
+              # Record the number of support vectors and number of violating vectors
+              n_support_vectors.append(clf.n_support_.sum())
+              n_violating_vectors.append((np.abs(clf.decision_function(X_val_fold)) - 1 > 1e-5).sum())
+
+              # Record the margin of the hyperplane
+              margin = 2 / np.sqrt(np.sum(clf.coef_ ** 2))
+              margins.append(margin)
+
+          # Calculate the mean of each metric over all folds of cross-validation
+          ERR[:, i, j] = err
+          SuppVect[i, j] = np.mean(n_support_vectors)
+          vmd[i, j] = np.mean(n_violating_vectors)
+          MarginT[i, j] = np.mean(margins)
+
+  # Calculate the average testing error for each value of D
+  ERRAVGdcTEST = np.mean(ERR, axis=0)
+
+  return ERRAVGdcTEST, SuppVect, vmd, MarginT
 
 @typechecked
 def plot_test_errors(ERRAVGdcTEST : np.array, d_vals : np.array) -> None:
