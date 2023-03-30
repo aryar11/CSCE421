@@ -27,10 +27,9 @@ def read_classification_data(file_path:str) ->Tuple[np.array, np.array]:
     Return the data as 2 np arrays each with shape (number_of_rows_in_dataframe, 1)
     Order (np.array from first row), (np.array from second row)
   '''
-  #Read data
   data = np.genfromtxt(file_path, delimiter=',')
 
-  #Separate the rows
+  #separate rows
   row1 = data[0, :].reshape(-1, 1)
   row2 = data[1, :].reshape(-1, 1)
   return row1, row2
@@ -54,7 +53,7 @@ def cost_function(w:float, b:float, X:np.array, y:np.array) -> float:
     y : target with shape (number_of_rows_in_dataframe, 1)
   Return the loss as a float data type. 
   '''
-  #   compute the predictions
+  #     compute the predictions
   z = np.dot(X, w) + b
   y_pred = sigmoid(z)
 
@@ -89,7 +88,6 @@ def cross_entropy_optimizer(w:float, b:float, X:np.array, y:np.array, num_iterat
       #compute the predicted probabilities and loss
       z = np.dot(X, w) + b
       y_pred = sigmoid(z)
-      
       loss = cost_function(w, b, X, y)
       costs.append(loss)
 
@@ -102,7 +100,6 @@ def cross_entropy_optimizer(w:float, b:float, X:np.array, y:np.array, num_iterat
       b -= alpha * db
       w = w.item()
       b = b.item()
-
   return w, b, costs
     
 
@@ -134,7 +131,6 @@ def normalize_data(Xtrain : pd.DataFrame, Xtest : pd.DataFrame) -> Tuple [pd.Dat
     Use sklearn.preprocessing.StandardScaler library to normalize
     Return the results in the order Xtrain_norm, Xtest_norm
   '''
-
   scaler = StandardScaler()
   Xtrain_norm = scaler.fit_transform(Xtrain)
   Xtest_norm = scaler.transform(Xtest)
@@ -195,14 +191,14 @@ def cross_validate_c_vals(X : pd.DataFrame, y : pd.DataFrame, n_folds: int, c_va
   y = y.to_numpy().reshape((y_length,))
   for i, c in enumerate(c_vals):
       for j, d in enumerate(d_vals):
-          kf = StratifiedKFold(n_splits=n_folds)
+          fold = StratifiedKFold(n_splits=n_folds)
           fold_errors = []
-          for train_index, test_index in kf.split(X,y):
+          for train_index, test_index in fold.split(X,y):
               X_train, X_test = X.iloc[train_index], X.iloc[test_index]
               y_train, y_test = y[train_index], y[test_index]
-              clf = SVC(kernel='poly', degree=d, C=c, gamma='scale')
-              clf.fit(X_train, y_train)
-              y_pred = clf.predict(X_test)
+              svc_model = SVC(kernel='poly', degree=d, C=c)
+              svc_model.fit(X_train, y_train)
+              y_pred = svc_model.predict(X_test)
               fold_errors.append(mean_absolute_error(y_test, y_pred))
           ERRAVGdc[i][j] = np.mean(fold_errors)
           ERRSTDdc[i][j] = np.std(fold_errors)
@@ -251,92 +247,25 @@ def evaluate_c_d_pairs(X_train : pd.DataFrame, y_train : pd.DataFrame, X_test : 
     MarginT      - Average Value of Hyperplane Margins for each value of 'd'
   Implement- evaluate_c_d_pairs(), plot_test_errors, plot_avg_support_vec(), plot_avg_violating_support_vec(), plot_avg_hyperplane_margins()
   '''
-  """
-  ERRAVGdcTEST = np.zeros(len(d_vals))
-  SuppVect = np.zeros(len(d_vals))
-  vmd = np.zeros(len(d_vals))
+  ERRAVGdcTEST = np.zeros( len(d_vals))
+  SuppVect = np.zeros( len(d_vals))
+  vmd = np.zeros( len(d_vals))
   MarginT = np.zeros(len(d_vals))
 
-  y_train = y_train.to_numpy().ravel()
-  y_test = y_test.to_numpy().ravel()
-
-  for j, d in enumerate(d_vals):
-      best_c = c_vals[j]
-      clf = SVC(kernel='linear', degree=d, C=best_c)
-      clf.fit(X_train, y_train)
-      y_pred = clf.predict(X_test)
-      supp_vect_count = np.sum(clf.n_support_)
-      vmd_val = (1/2) * np.sum(clf.coef_**2) + clf.intercept_
-      margin_t = 1 / np.linalg.norm(clf.coef_)
-
-      ERRAVGdc = np.zeros(n_folds)
-      for i, (train_index, val_index) in enumerate(StratifiedKFold(n_splits=n_folds).split(X_train, y_train)):
-          X_train_kf, X_val = X_train.iloc[train_index], X_train.iloc[val_index]
-          y_train_kf, y_val = y_train[train_index], y_train[val_index]
-          clf = SVC(kernel='poly', degree=d, C=best_c, gamma='scale')
-          clf.fit(X_train_kf, y_train_kf)
-          y_val_pred = clf.predict(X_val)
-          ERRAVGdc[i] = mean_absolute_error(y_val, y_val_pred)
-
-      ERRAVGdcTEST[j] = mean_absolute_error(y_test, y_pred)
-      SuppVect[j] = supp_vect_count
-      vmd[j] = vmd_val
-      MarginT[j] = margin_t
-
-  return ERRAVGdcTEST, SuppVect, vmd, MarginT
-  """
-  # Create arrays to store results for each C and D value
-  ERR = np.zeros((n_folds, len(c_vals), len(d_vals)))
-  SuppVect = np.zeros((len(c_vals), len(d_vals)))
-  vmd = np.zeros((len(c_vals), len(d_vals)))
-  MarginT = np.zeros((len(c_vals), len(d_vals)))
-
-  # Set up K-fold cross-validation
-  kf = KFold(n_splits=n_folds)
-
-  # Loop through each degree of polynomial function (D value)
-  for j in range(len(d_vals)):
-      d = d_vals[j]
-      X = PolynomialFeatures(X_train, d)
-
-      # Loop through each regularization parameter (C value)
-      for i in range(len(c_vals)):
-          c = c_vals[i]
-          err = []
-          n_support_vectors = []
-          n_violating_vectors = []
-          margins = []
-
-          # Loop through each fold of the cross-validation
-          for train_index, val_index in kf.split(X_train):
-              X_train_fold, X_val_fold = X_train.iloc[train_index], X_train.iloc[val_index]
-              y_train_fold, y_val_fold = y_train.iloc[train_index], y_train.iloc[val_index]
-
-              # Train the SVM model with the current C and D values
-              clf = SVC(kernel='poly', C=c, degree=d)
-              clf.fit(X_train_fold, y_train_fold.values.ravel())
-
-              # Predict on the validation set and calculate the mean squared error
-              y_pred = clf.predict(X_val_fold)
-              err.append(mean_absolute_error(y_val_fold, y_pred))
-
-              # Record the number of support vectors and number of violating vectors
-              n_support_vectors.append(clf.n_support_.sum())
-              n_violating_vectors.append((np.abs(clf.decision_function(X_val_fold)) - 1 > 1e-5).sum())
-
-              # Record the margin of the hyperplane
-              margin = 2 / np.sqrt(np.sum(clf.coef_ ** 2))
-              margins.append(margin)
-
-          # Calculate the mean of each metric over all folds of cross-validation
-          ERR[:, i, j] = err
-          SuppVect[i, j] = np.mean(n_support_vectors)
-          vmd[i, j] = np.mean(n_violating_vectors)
-          MarginT[i, j] = np.mean(margins)
-
-  # Calculate the average testing error for each value of D
-  ERRAVGdcTEST = np.mean(ERR, axis=0)
-
+  y_train = y_train.to_numpy().reshape((y_train.shape[0],))
+  y_test = y_test.to_numpy().reshape((y_test.shape[0],))
+  
+  for i, c in enumerate(c_vals):
+      for j, d in enumerate(d_vals):
+          svc = SVC(kernel='poly', degree=d, C=c)
+          svc.fit(X_train, y_train)
+          y_pred = svc.predict(X_test)
+          test_error = mean_absolute_error(y_test, y_pred)
+          ERRAVGdcTEST[j] = test_error
+          SuppVect[j] = svc.support_vectors_.shape[0]
+          vmd[j] = np.mean(np.maximum(0, 1 - y_train * svc.decision_function(X_train)))
+          MarginT[j] = np.mean(np.abs(svc.decision_function(X_train)))
+  
   return ERRAVGdcTEST, SuppVect, vmd, MarginT
 
 @typechecked
