@@ -211,15 +211,13 @@ def plot_cross_val_err_vs_c(ERRAVGdc: np.array, ERRSTDdc: np.array, c_vals: np.a
    Please write the code in below block to generate the graphs as described in the question.
    Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
   '''
-  fig, axs = plt.subplots(len(d_vals), 1, figsize=(8, 8))
-  fig.suptitle('Cross-validation error vs. C for different degree values')
+  plt.title("Cross-validation error vs. C for different degree values")
   for j, d in enumerate(d_vals):
-      axs[j].errorbar(c_vals, ERRAVGdc[:,j], yerr=ERRSTDdc[:,j], fmt='o-', capsize=4)
-      axs[j].set_xscale('log')
-      axs[j].set_xlabel('C')
-      axs[j].set_ylabel('Mean Absolute Error')
-      axs[j].set_title(f'degree={d}')
-  plt.tight_layout()
+    plt.errorbar(c_vals, ERRAVGdc[:,j], yerr=ERRSTDdc[:,j], fmt='-', label=f"Degree {d}")
+  plt.xscale('log')
+  plt.xlabel('C')
+  plt.ylabel('Mean Absolute Error')
+  plt.legend()
   plt.show()
 
 ################
