@@ -2,7 +2,7 @@ import shutil
 import requests
 import os
 from datetime import date, timedelta
-
+import win32com.client
 
 today = date.today()
 formatted_date = today.strftime("%Y-%m-%d") #todays date
@@ -121,3 +121,13 @@ with open(file_path, "wb") as file:
 
 # Copy the file to the date directory
 shutil.copy(file_path, date_directory)
+
+
+
+##RUN UPDATE Command##
+print("accessing database")
+accessApp = win32com.client.Dispatch("Access.Application")
+accessApp.OpenCurrentDatabase("C:\\SWAT\\Data\\SID\\SWAT-Data-TLE.mdb")
+accessApp.DoCmd.RunMacro("SSC-Import-TLE")
+accessApp.CloseCurrentDatabase()
+accessApp.Quit()
