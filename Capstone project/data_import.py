@@ -125,7 +125,6 @@ shutil.copy(file_path, date_directory)
 
 
 ##RUN UPDATE Command##
-print("accessing database")
 accessApp = win32com.client.Dispatch("Access.Application")
 accessApp.OpenCurrentDatabase("C:\\SWAT\\Data\\SID\\SWAT-Data-TLE.mdb")
 accessApp.DoCmd.RunMacro("SSC-Import-TLE")
