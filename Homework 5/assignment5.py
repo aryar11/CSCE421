@@ -128,9 +128,7 @@ def qd1_project(dataset:np.ndarray, pca:PCA) -> np.ndarray:
     Return the projection of the dataset 
     NOTE: TO TEST CORRECTNESS, please submit to autograder
     """
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
+    return pca.transform(dataset)
 
 @typechecked
 def qd2_reconstruct(projected_input:np.ndarray, pca:PCA) -> np.ndarray:
@@ -138,9 +136,7 @@ def qd2_reconstruct(projected_input:np.ndarray, pca:PCA) -> np.ndarray:
     Return the reconstructed image given the pca components
     NOTE: TO TEST CORRECTNESS, please submit to autograder
     """
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
+    return pca.inverse_transform(projected_input)
 
 def qd3_visualize(dataset:np.ndarray, pca:PCA, dim_x = 243, dim_y = 320):
     """
@@ -185,11 +181,11 @@ if __name__ == "__main__":
     dataset = qa2_preprocess(faces)
     pca, eig_values, eig_vectors = qa3_calc_eig_val_vec(dataset, len(dataset))
 
-    qb_plot_written(eig_values)
+    #qb_plot_written(eig_values)
 
     num = len(dataset)
     org_dim_eig_faces = qc1_reshape_images(pca)
-    qc2_plot(org_dim_eig_faces)
+    #qc2_plot(org_dim_eig_faces)
 
     qd3_visualize(dataset, pca)
     best_k, result = qe1_svm(dataset, y_target, pca)
