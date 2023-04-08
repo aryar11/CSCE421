@@ -21,15 +21,13 @@ import os
 
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import roc_auc_score, f1_score
 from sklearn.metrics import accuracy_score
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression, Ridge, Lasso
 from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import StratifiedKFold
-import sklearn
 from typing import Tuple, List
 from typeguard import typechecked
 
@@ -156,9 +154,20 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
 
     Hint: you can pick 5 `k' values uniformly distributed
     """
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
+    k_values = np.linspace(10, 100, 5, dtype=int)
+    kf = StratifiedKFold(n_splits=5, shuffle=True)
+    best_k = 0
+    best_accuracy = 0.0
+    for k in k_values:
+        #project the data onto k PCA components
+        projected_trainX = pca.transform(trainX)[:, :k]
+        # train   SVM with RBF kernel and cross validate
+        svc = SVC(kernel='rbf')
+        accuracy = np.mean(cross_val_score(svc, projected_trainX, trainY, cv=kf))
+        if accuracy > best_accuracy:
+            best_k = k
+            best_accuracy = accuracy
+    return int(best_k), best_accuracy
 
 @typechecked
 def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
@@ -169,9 +178,41 @@ def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float
 
     Hint: you can pick 5 `k' values uniformly distributed
     """
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
+    # Split dataset into training and testing sets
+    trainX, testX, trainY, testY = train_test_split(dataset[:, :-1], dataset[:, -1], test_size=0.2, random_state=42)
+
+    # Create PCA instance and fit to training set
+    pca = PCA().fit(trainX)
+
+    # Uniformly sample components in range [10, 100] with a gap of 20
+    k_values = np.arange(10, 100, 20)
+
+    # Initialize variables to keep track of best k and best accuracy
+    best_k = None
+    best_accuracy = 0.0
+
+    # Perform 5-fold cross-validation for each k value and select the best k
+    for k in k_values:
+        # Project the training set onto the first k principal components
+        trainX_pca = pca.transform(trainX)[:, :k]
+
+        # Train Lasso regression on the projected training set
+        lasso = Lasso(alpha=0.1)
+        lasso.fit(trainX_pca, trainY)
+
+        # Project the testing set onto the first k principal components
+        testX_pca = pca.transform(testX)[:, :k]
+
+        # Make predictions on the testing set and compute accuracy
+        y_pred = lasso.predict(testX_pca)
+        accuracy = accuracy_score(testY, y_pred)
+
+        # Update best k and best accuracy if necessary
+        if accuracy > best_accuracy:
+            best_k = k
+            best_accuracy = accuracy
+
+    return int(best_k), best_accuracy
 
 
 
