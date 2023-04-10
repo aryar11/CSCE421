@@ -40,9 +40,6 @@ def qa1_load(folder_path:str) -> Tuple[np.ndarray, np.ndarray]:
     x should be of shape [165, 243 * 320]
     label can be extracted from the subject number in filename. ('subject01' -> '01 as label)
     """
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
     images = [] 
     labels = []
     for file in os.listdir(folder_path):
@@ -141,10 +138,33 @@ def qd3_visualize(dataset:np.ndarray, pca:PCA, dim_x = 243, dim_y = 320):
     No structure is required for this question. It does not have to return anything.
     Use this function to produce plots. You can use other functions that you coded up for the assignment
     """
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
+    # Select two random images from the dataset
+    img_idx1, img_idx2 = np.random.choice(len(dataset), size=2, replace=False)
 
+    # Set number of components to visualize
+    num_components = [1, 10, 20, 30, 40, 50]
+
+    #plot first
+    plt.figure(figsize=(12, 6))
+    for i, k in enumerate(num_components):
+        img1_reconstructed = qd2_reconstruct(qd1_project(dataset[img_idx1].reshape(1, -1), pca)[:k], pca).reshape(dim_x, dim_y)
+        plt.subplot(2, 6, i+1)
+        plt.imshow(img1_reconstructed, cmap='gray')
+        plt.axis('off')
+        plt.title(f'k={k}')
+
+    #second image
+    for i, k in enumerate(num_components):
+        img2_reconstructed = qd2_reconstruct(qd1_project(dataset[img_idx2].reshape(1, -1), pca)[:k], pca).reshape(dim_x, dim_y)
+        plt.subplot(2, 6, i+7)
+        plt.imshow(img2_reconstructed, cmap='gray')
+        plt.axis('off')
+        plt.title(f'k={k}')
+
+    plt.tight_layout()
+    plt.show()
+
+    
 @typechecked
 def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
     """
@@ -154,7 +174,7 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
 
     Hint: you can pick 5 `k' values uniformly distributed
     """
-    k_values = np.linspace(10, 100, 5, dtype=int)
+    k_values = np.arange(10, 101, 20)
     kf = StratifiedKFold(n_splits=5, shuffle=True)
     best_k = 0
     best_accuracy = 0.0
@@ -167,7 +187,9 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
         if accuracy > best_accuracy:
             best_k = k
             best_accuracy = accuracy
+
     return int(best_k), best_accuracy
+
 
 @typechecked
 def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
@@ -178,36 +200,33 @@ def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float
 
     Hint: you can pick 5 `k' values uniformly distributed
     """
-    # Split dataset into training and testing sets
-    trainX, testX, trainY, testY = train_test_split(dataset[:, :-1], dataset[:, -1], test_size=0.2, random_state=42)
+    #split
+    trainX, testX, trainY, testY = train_test_split(trainX[:, :-1], trainX[:, -1], test_size=0.2, random_state=42)
 
-    # Create PCA instance and fit to training set
+    #train pca
     pca = PCA().fit(trainX)
 
-    # Uniformly sample components in range [10, 100] with a gap of 20
-    k_values = np.arange(10, 100, 20)
+    #init k vals
+    k_values = np.arange(10, 101, 20)
 
-    # Initialize variables to keep track of best k and best accuracy
     best_k = None
     best_accuracy = 0.0
 
-    # Perform 5-fold cross-validation for each k value and select the best k
     for k in k_values:
-        # Project the training set onto the first k principal components
+        #project the training set onto the first k components
         trainX_pca = pca.transform(trainX)[:, :k]
 
-        # Train Lasso regression on the projected training set
+        #train lasso with projected data
         lasso = Lasso(alpha=0.1)
         lasso.fit(trainX_pca, trainY)
 
-        # Project the testing set onto the first k principal components
         testX_pca = pca.transform(testX)[:, :k]
 
-        # Make predictions on the testing set and compute accuracy
+        # predict and find accuracy
         y_pred = lasso.predict(testX_pca)
         accuracy = accuracy_score(testY, y_pred)
 
-        # Update best k and best accuracy if necessary
+        #store best values
         if accuracy > best_accuracy:
             best_k = k
             best_accuracy = accuracy
