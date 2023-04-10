@@ -138,16 +138,17 @@ def qd3_visualize(dataset:np.ndarray, pca:PCA, dim_x = 243, dim_y = 320):
     No structure is required for this question. It does not have to return anything.
     Use this function to produce plots. You can use other functions that you coded up for the assignment
     """
-    # Select two random images from the dataset
+    #get two random images from the dataset
     img_idx1, img_idx2 = np.random.choice(len(dataset), size=2, replace=False)
-
-    # Set number of components to visualize
+    img1 = dataset[img_idx1]
+    img2 = dataset[img_idx2]
+    # set number of components to visualize
     num_components = [1, 10, 20, 30, 40, 50]
 
     #plot first
     plt.figure(figsize=(12, 6))
     for i, k in enumerate(num_components):
-        img1_reconstructed = qd2_reconstruct(qd1_project(dataset[img_idx1].reshape(1, -1), pca)[:k], pca).reshape(dim_x, dim_y)
+        img1_reconstructed = qd2_reconstruct(qd1_project(img1.reshape(1, -1), pca)[:k], pca).reshape(dim_x, dim_y)
         plt.subplot(2, 6, i+1)
         plt.imshow(img1_reconstructed, cmap='gray')
         plt.axis('off')
@@ -155,7 +156,7 @@ def qd3_visualize(dataset:np.ndarray, pca:PCA, dim_x = 243, dim_y = 320):
 
     #second image
     for i, k in enumerate(num_components):
-        img2_reconstructed = qd2_reconstruct(qd1_project(dataset[img_idx2].reshape(1, -1), pca)[:k], pca).reshape(dim_x, dim_y)
+        img2_reconstructed = qd2_reconstruct(qd1_project(img2.reshape(1, -1), pca)[:k], pca).reshape(dim_x, dim_y)
         plt.subplot(2, 6, i+7)
         plt.imshow(img2_reconstructed, cmap='gray')
         plt.axis('off')
@@ -175,7 +176,7 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
     Hint: you can pick 5 `k' values uniformly distributed
     """
     k_values = np.arange(10, 101, 20)
-    kf = StratifiedKFold(n_splits=5, shuffle=True)
+    k_fold = StratifiedKFold(n_splits=5, shuffle=True)
     best_k = 0
     best_accuracy = 0.0
     for k in k_values:
@@ -183,7 +184,7 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
         projected_trainX = pca.transform(trainX)[:, :k]
         # train   SVM with RBF kernel and cross validate
         svc = SVC(kernel='rbf')
-        accuracy = np.mean(cross_val_score(svc, projected_trainX, trainY, cv=kf))
+        accuracy = np.mean(cross_val_score(svc, projected_trainX, trainY, cv=k_fold))
         if accuracy > best_accuracy:
             best_k = k
             best_accuracy = accuracy
@@ -201,7 +202,7 @@ def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float
     Hint: you can pick 5 `k' values uniformly distributed
     """
     #split
-    trainX, testX, trainY, testY = train_test_split(trainX[:, :-1], trainX[:, -1], test_size=0.2, random_state=42)
+    trainX, testX, trainY, testY = train_test_split(trainX[:, :-1], trainX[:, -1], test_size=0.2)
 
     #train pca
     pca = PCA().fit(trainX)
@@ -209,7 +210,7 @@ def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float
     #init k vals
     k_values = np.arange(10, 101, 20)
 
-    best_k = None
+    best_k = 0
     best_accuracy = 0.0
 
     for k in k_values:
@@ -241,11 +242,11 @@ if __name__ == "__main__":
     dataset = qa2_preprocess(faces)
     pca, eig_values, eig_vectors = qa3_calc_eig_val_vec(dataset, len(dataset))
 
-    #qb_plot_written(eig_values)
+    qb_plot_written(eig_values)
 
     num = len(dataset)
     org_dim_eig_faces = qc1_reshape_images(pca)
-    #qc2_plot(org_dim_eig_faces)
+    qc2_plot(org_dim_eig_faces)
 
     qd3_visualize(dataset, pca)
     best_k, result = qe1_svm(dataset, y_target, pca)
