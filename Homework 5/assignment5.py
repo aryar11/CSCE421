@@ -140,24 +140,30 @@ def qd3_visualize(dataset:np.ndarray, pca:PCA, dim_x = 243, dim_y = 320):
     """
     #get two random images from the dataset
     img_idx1, img_idx2 = np.random.choice(len(dataset), size=2, replace=False)
-    img1 = dataset[img_idx1]
-    img2 = dataset[img_idx2]
+    #img1 = dataset[img_idx1]
+    #img2 = dataset[img_idx2]
     # set number of components to visualize
-    num_components = [1, 10, 20, 30, 40, 50]
+    num_components = [1,10, 20, 30, 40, 50, 100]
 
     #plot first
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(14, 7))
     for i, k in enumerate(num_components):
-        img1_reconstructed = qd2_reconstruct(qd1_project(img1.reshape(1, -1), pca)[:k], pca).reshape(dim_x, dim_y)
-        plt.subplot(2, 6, i+1)
+        #train pcs for num of components
+        
+        pca1 = PCA(n_components=k)
+        pca1.fit(dataset)
+        #work with img1
+        img1_reconstructed = qd2_reconstruct(qd1_project(dataset, pca1)[img_idx1], pca1).reshape(dim_x, dim_y)
+        plt.subplot(2, 7, i+1)
         plt.imshow(img1_reconstructed, cmap='gray')
         plt.axis('off')
         plt.title(f'k={k}')
 
-    #second image
-    for i, k in enumerate(num_components):
-        img2_reconstructed = qd2_reconstruct(qd1_project(img2.reshape(1, -1), pca)[:k], pca).reshape(dim_x, dim_y)
-        plt.subplot(2, 6, i+7)
+
+        print(qd2_reconstruct(qd1_project(dataset, pca)[img_idx2], pca))
+        #plot image 2
+        img2_reconstructed =  qd2_reconstruct(qd1_project(dataset, pca)[img_idx2][:k], pca)
+        plt.subplot(2, 7, i+8)
         plt.imshow(img2_reconstructed, cmap='gray')
         plt.axis('off')
         plt.title(f'k={k}')
@@ -242,14 +248,14 @@ if __name__ == "__main__":
     dataset = qa2_preprocess(faces)
     pca, eig_values, eig_vectors = qa3_calc_eig_val_vec(dataset, len(dataset))
 
-    qb_plot_written(eig_values)
+    #qb_plot_written(eig_values)
 
     num = len(dataset)
     org_dim_eig_faces = qc1_reshape_images(pca)
-    qc2_plot(org_dim_eig_faces)
+    #qc2_plot(org_dim_eig_faces)
 
     qd3_visualize(dataset, pca)
     best_k, result = qe1_svm(dataset, y_target, pca)
     print(best_k, result)
-    best_k, result = qe2_lasso(dataset, y_target, pca)
+    #best_k, result = qe2_lasso(dataset, y_target, pca)
     print(best_k, result)
