@@ -185,6 +185,7 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
     k_fold = StratifiedKFold(n_splits=5, shuffle=True)
     best_k = 0
     best_accuracy = 0.0
+    
     for k in k_values:
         #project the data onto k PCA components
         projected_trainX = pca.transform(trainX)[:, :k]
@@ -210,7 +211,6 @@ def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float
     #split
     trainX, testX, trainY, testY = train_test_split(trainX[:, :-1], trainX[:, -1], test_size=0.2)
 
-    #train pca
     pca = PCA().fit(trainX)
 
     #init k vals
@@ -229,10 +229,9 @@ def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float
 
         testX_pca = pca.transform(testX)[:, :k]
 
-        # predict and find accuracy
-        y_pred = lasso.predict(testX_pca)
-        accuracy = accuracy_score(testY, y_pred)
-
+        accuracy = lasso.score(testX_pca, testY)
+        
+        print(accuracy)
         #store best values
         if accuracy > best_accuracy:
             best_k = k
@@ -254,8 +253,8 @@ if __name__ == "__main__":
     org_dim_eig_faces = qc1_reshape_images(pca)
     #qc2_plot(org_dim_eig_faces)
 
-    qd3_visualize(dataset, pca)
+    #qd3_visualize(dataset, pca)
     best_k, result = qe1_svm(dataset, y_target, pca)
     print(best_k, result)
-    #best_k, result = qe2_lasso(dataset, y_target, pca)
+    best_k, result = qe2_lasso(dataset, y_target, pca)
     print(best_k, result)
