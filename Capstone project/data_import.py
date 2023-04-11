@@ -3,6 +3,31 @@ import requests
 import os
 from datetime import date, timedelta
 import win32com.client
+from scrapy import Selector
+
+
+
+class Scraper:
+
+    def __init__(self):
+        self.sess = requests.session()
+
+    def start(self):
+        if not os.path.exists("Output"):
+            os.mkdir("Output")
+        self.login()
+        for item in links_to_download:
+            self.download_file(item)
+        print("Completed!")
+
+    def login(self):
+        print("logging into website........")
+        r = self.sess.get(LOGIN_URL, headers={"User-Agent": headers.get("User-Agent")})
+        response = Selector(text=r.content)
+        csrf_token = response.xpath("//input[@name='spacetrack_csrf_token']/@value").get()
+        self.sess.post(LOGIN_URL, headers=headers, data=payload.format(csrf_token))
+        print("logged in!")
+
 
 today = date.today()
 formatted_date = today.strftime("%Y-%m-%d") #todays date
@@ -23,42 +48,34 @@ else:
     os.makedirs(date_directory, exist_ok=True)   
 
 
-cookies = {
-    'spacetrack_csrf_cookie': '0d5a77150955837b9f77dd331d61c2f1',
-    'chocolatechip': 'b7q5lej34ov2a1vcse13c29sok509k66',
-}
+
+LOGIN_URL = "https://www.space-track.org/auth/login"
 
 headers = {
-    'authority': 'www.space-track.org',
-    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-    'accept-language': 'en-US,en;q=0.9',
-    'cache-control': 'max-age=0',
-    # 'cookie': 'spacetrack_csrf_cookie=0d5a77150955837b9f77dd331d61c2f1; chocolatechip=b7q5lej34ov2a1vcse13c29sok509k66',
-    'referer': 'https://www.space-track.org/auth/login',
-    'sec-ch-ua': '"Google Chrome";v="111", "Not(A:Brand";v="8", "Chromium";v="111"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"',
-    'sec-fetch-dest': 'document',
-    'sec-fetch-mode': 'navigate',
-    'sec-fetch-site': 'same-origin',
-    'sec-fetch-user': '?1',
-    'upgrade-insecure-requests': '1',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+    "content-type": "application/x-www-form-urlencoded",
+    "origin": "https://www.space-track.org",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36"
 }
 
-response = requests.get('https://www.space-track.org/', cookies=cookies, headers=headers)
+payload = "spacetrack_csrf_token={}&identity=arya.r11223%40gmail.com&password=Password123456%21&btnLogin=LOGIN"
+
+
+
+sess = requests.session()
+r = sess.get(LOGIN_URL, headers={"User-Agent": headers.get("User-Agent")})
+response = Selector(text=r.content)
+csrf_token = response.xpath("//input[@name='spacetrack_csrf_token']/@value").get()
+sess.post(LOGIN_URL, headers=headers, data=payload.format(csrf_token))
 
 #######IMPORT 3LE########
 url = "https://www.space-track.org/basicspacedata/query/class/gp/EPOCH/%3Enow-30/orderby/NORAD_CAT_ID,EPOCH/format/3le"
 
-response = requests.get(url, cookies=cookies, headers=headers)
-
 # Set the file path and name
 file_path = r"C:\SWAT\Data\TLE\Import\3le.txt"
-
+r = sess.get(url, headers={"User-Agent": headers.get("User-Agent")})
 # Write the TLEs to the file
 with open(file_path, "wb") as file:
-    file.write(response.content)
+    file.write(r.content)
 
 # Remove all lines from the file starting from the first line that starts with "0 TBA"
 with open(file_path, "r") as file:
@@ -86,14 +103,14 @@ formatted_tomorrow = tomorrow.strftime("%Y-%m-%d") #tmrws date
 formatted_yesterday = yesterday.strftime("%Y-%m-%d") #yesterday date
 url ="https://www.space-track.org/basicspacedata/query/class/gp_history/CREATION_DATE/" + formatted_yesterday + "--" + formatted_date + "/orderby/NORAD_CAT_ID,EPOCH/format/tle/emptyresult/show"
 
-response = requests.get(url, cookies=cookies, headers=headers)
+r = sess.get(url, headers={"User-Agent": headers.get("User-Agent")})
 
 # Set the file path and name
 file_path = r"C:\SWAT\Data\TLE\Import\tle.txt"
 
 # Write the response content to the file
 with open(file_path, "wb") as file:
-    file.write(response.content)
+    file.write(r.content)
 
 # Copy the file to the date directory
 shutil.copy(file_path, date_directory)
@@ -103,14 +120,13 @@ shutil.copy(file_path, date_directory)
 
 ####IMPORT SATELLITE DATA.CSV AND XLSX
 url = "https://www.space-track.org/basicspacedata/query/class/satcat/predicates/OBJECT_ID,OBJECT_NAME,NORAD_CAT_ID,COUNTRY,PERIOD,INCLINATION,APOGEE,PERIGEE,RCS_SIZE,RCSVALUE,LAUNCH,COMMENT/DECAY/null-val/CURRENT/Y/orderby/NORAD_CAT_ID%20desc/format/csv/emptyresult/show"
-response = requests.get(url, cookies=cookies, headers=headers)
-
+r = sess.get(url, headers={"User-Agent": headers.get("User-Agent")})
 # Set the file path and name
 file_path = r"C:\SWAT\Data\TLE\Import\Satellite Data.csv"
 
 # Write the response content to the file
 with open(file_path, "wb") as file:
-    file.write(response.content)
+    file.write(r.content)
 
 # Copy the file to the date directory
 shutil.copy(file_path, date_directory)
@@ -119,7 +135,7 @@ shutil.copy(file_path, date_directory)
 file_path = r"C:\SWAT\Data\TLE\Import\Satellite Data.xlsx"
 # Write the response content to the file
 with open(file_path, "wb") as file:
-    file.write(response.content)
+    file.write(r.content)
 
 # Copy the file to the date directory
 shutil.copy(file_path, date_directory)
